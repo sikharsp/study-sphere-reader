@@ -9,7 +9,7 @@ const Header = () => {
       <div className="container flex h-16 items-center justify-between">
         <Link to="/" className="flex items-center gap-2">
           <BookOpen className="h-6 w-6 text-study-600" />
-          <span className="text-xl font-bold text-gray-800">StudySphere</span>
+          <span className="text-xl font-bold text-gray-800">Academic Resources</span>
         </Link>
         <nav className="hidden md:block">
           <ul className="flex items-center gap-6">

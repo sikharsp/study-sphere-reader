@@ -1,7 +1,7 @@
 
 import { Button } from "@/components/ui/button";
 import MainLayout from "@/components/layout/MainLayout";
-import { BookOpen, FileText, Upload, Users } from "lucide-react";
+import { BookOpen, FileText, GraduationCap, BookType, School } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const Index = () => {
@@ -13,21 +13,15 @@ const Index = () => {
           <div className="grid gap-6 lg:grid-cols-2 lg:gap-12">
             <div className="space-y-4">
               <h1 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">
-                Your Digital Learning Library
+                Educational Resources Hub
               </h1>
               <p className="text-muted-foreground md:text-xl">
-                Access educational materials anytime, anywhere. StudySphere makes learning efficient with 
-                our easy-to-use PDF reader platform.
+                Access quality study materials for your academic programs. Find organized resources for BSc, BScCSIT, BCA, and BBS programs.
               </p>
               <div className="flex flex-col gap-2 sm:flex-row">
                 <Link to="/library">
                   <Button size="lg" className="bg-white text-study-700 hover:bg-gray-100">
                     Browse Library
-                  </Button>
-                </Link>
-                <Link to="/upload">
-                  <Button size="lg" variant="outline" className="border-white text-white hover:bg-study-800">
-                    Upload Documents
                   </Button>
                 </Link>
               </div>
@@ -43,13 +37,67 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Features Section */}
+      {/* Academic Programs Section */}
       <section className="py-16">
         <div className="container px-4 md:px-6">
           <div className="mb-12 text-center">
-            <h2 className="text-3xl font-bold">Why Choose StudySphere?</h2>
+            <h2 className="text-3xl font-bold">Academic Programs</h2>
             <p className="mx-auto mt-4 max-w-2xl text-gray-600">
-              Our platform is designed to make educational resources accessible and easy to use
+              Browse study materials by your specific academic program
+            </p>
+          </div>
+
+          <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
+            <Link to="/library?category=bsc" className="group">
+              <div className="rounded-lg border bg-card p-6 shadow-sm transition-all hover:shadow-md group-hover:border-study-500">
+                <GraduationCap className="mb-4 h-10 w-10 text-study-500" />
+                <h3 className="mb-2 text-xl font-bold group-hover:text-study-600">BSc</h3>
+                <p className="text-gray-600">
+                  Bachelor of Science resources and reading materials
+                </p>
+              </div>
+            </Link>
+            
+            <Link to="/library?category=bsccsit" className="group">
+              <div className="rounded-lg border bg-card p-6 shadow-sm transition-all hover:shadow-md group-hover:border-study-500">
+                <BookType className="mb-4 h-10 w-10 text-study-500" />
+                <h3 className="mb-2 text-xl font-bold group-hover:text-study-600">BScCSIT</h3>
+                <p className="text-gray-600">
+                  Computer Science and Information Technology materials
+                </p>
+              </div>
+            </Link>
+            
+            <Link to="/library?category=bca" className="group">
+              <div className="rounded-lg border bg-card p-6 shadow-sm transition-all hover:shadow-md group-hover:border-study-500">
+                <School className="mb-4 h-10 w-10 text-study-500" />
+                <h3 className="mb-2 text-xl font-bold group-hover:text-study-600">BCA</h3>
+                <p className="text-gray-600">
+                  Bachelor of Computer Applications study resources
+                </p>
+              </div>
+            </Link>
+            
+            <Link to="/library?category=bbs" className="group">
+              <div className="rounded-lg border bg-card p-6 shadow-sm transition-all hover:shadow-md group-hover:border-study-500">
+                <FileText className="mb-4 h-10 w-10 text-study-500" />
+                <h3 className="mb-2 text-xl font-bold group-hover:text-study-600">BBS</h3>
+                <p className="text-gray-600">
+                  Bachelor of Business Studies reference materials
+                </p>
+              </div>
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* Features Section */}
+      <section className="bg-study-50 py-16">
+        <div className="container px-4 md:px-6">
+          <div className="mb-12 text-center">
+            <h2 className="text-3xl font-bold">Why Use This Resource Hub?</h2>
+            <p className="mx-auto mt-4 max-w-2xl text-gray-600">
+              Find everything you need for your academic success
             </p>
           </div>
           <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
@@ -57,21 +105,21 @@ const Index = () => {
               <FileText className="mb-4 h-10 w-10 text-study-500" />
               <h3 className="mb-2 text-xl font-bold">Easy Document Reading</h3>
               <p className="text-gray-600">
-                Our clean, user-friendly interface makes reading PDFs comfortable for extended study sessions
+                Clean, user-friendly interface for comfortable reading during long study sessions
               </p>
             </div>
             <div className="rounded-lg border bg-card p-6 shadow-sm">
-              <Upload className="mb-4 h-10 w-10 text-study-500" />
-              <h3 className="mb-2 text-xl font-bold">Simple Upload Process</h3>
+              <BookOpen className="mb-4 h-10 w-10 text-study-500" />
+              <h3 className="mb-2 text-xl font-bold">Organized by Program</h3>
               <p className="text-gray-600">
-                Share knowledge with easy document uploads - perfect for teachers and content creators
+                Find exactly what you need with resources categorized by academic program
               </p>
             </div>
             <div className="rounded-lg border bg-card p-6 shadow-sm">
-              <Users className="mb-4 h-10 w-10 text-study-500" />
-              <h3 className="mb-2 text-xl font-bold">Built For Students</h3>
+              <GraduationCap className="mb-4 h-10 w-10 text-study-500" />
+              <h3 className="mb-2 text-xl font-bold">Academic Success</h3>
               <p className="text-gray-600">
-                Designed with the needs of students in mind, making study materials readily available
+                Improve your learning outcomes with high-quality educational materials
               </p>
             </div>
           </div>
@@ -79,19 +127,19 @@ const Index = () => {
       </section>
 
       {/* CTA Section */}
-      <section className="bg-study-50 py-16">
+      <section className="py-16">
         <div className="container px-4 md:px-6">
           <div className="flex flex-col items-center justify-center space-y-4 text-center">
             <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">
-              Ready to Transform Your Learning?
+              Ready to Start Learning?
             </h2>
             <p className="mx-auto max-w-2xl text-gray-600">
-              Join StudySphere today and gain access to our growing library of educational materials
+              Access a growing library of educational materials for your academic program
             </p>
             <div className="flex flex-col gap-2 min-[400px]:flex-row">
               <Link to="/library">
                 <Button size="lg" className="bg-study-600 hover:bg-study-700">
-                  Get Started Now
+                  Browse Library
                 </Button>
               </Link>
             </div>

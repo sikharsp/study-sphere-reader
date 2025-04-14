@@ -5,9 +5,9 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/componen
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { FileText, Search } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 
-// Example data for PDFs
+// Example data for PDFs with academic programs as categories
 const SAMPLE_PDFS = [
   {
     id: "1",
@@ -15,7 +15,7 @@ const SAMPLE_PDFS = [
     description: "Fundamentals of programming and computer systems",
     pages: 42,
     uploadDate: "2023-10-15",
-    category: "Computer Science"
+    category: "bsccsit"
   },
   {
     id: "2",
@@ -23,15 +23,15 @@ const SAMPLE_PDFS = [
     description: "Comprehensive guide to cell biology and functions",
     pages: 28,
     uploadDate: "2023-11-05",
-    category: "Biology"
+    category: "bsc"
   },
   {
     id: "3",
-    title: "World History: Modern Era",
-    description: "Analysis of key events from 1900 to present day",
+    title: "Business Economics Fundamentals",
+    description: "Analysis of key economic principles for business",
     pages: 64,
     uploadDate: "2023-09-22",
-    category: "History"
+    category: "bbs"
   },
   {
     id: "4",
@@ -39,42 +39,77 @@ const SAMPLE_PDFS = [
     description: "Step-by-step guide to differential calculus",
     pages: 36,
     uploadDate: "2023-12-01",
-    category: "Mathematics"
+    category: "bsc"
   },
   {
     id: "5",
-    title: "Introduction to Psychology",
-    description: "Fundamentals of human behavior and mental processes",
+    title: "Programming in Java",
+    description: "Fundamentals of Java programming language",
     pages: 50,
     uploadDate: "2023-08-17",
-    category: "Psychology"
+    category: "bca"
   },
   {
     id: "6",
-    title: "English Literature: Shakespeare",
-    description: "Analysis of major works by William Shakespeare",
+    title: "Database Management Systems",
+    description: "Complete guide to DBMS concepts",
     pages: 45,
     uploadDate: "2023-07-30",
-    category: "Literature"
+    category: "bsccsit"
+  },
+  {
+    id: "7",
+    title: "Marketing Principles",
+    description: "Introduction to marketing strategies and concepts",
+    pages: 38,
+    uploadDate: "2023-06-15",
+    category: "bbs"
+  },
+  {
+    id: "8",
+    title: "Web Development Basics",
+    description: "HTML, CSS, and JavaScript fundamentals",
+    pages: 52,
+    uploadDate: "2023-05-20",
+    category: "bca"
   }
 ];
 
 const Library = () => {
   const [searchTerm, setSearchTerm] = useState("");
+  const [activeCategory, setActiveCategory] = useState("");
+  const location = useLocation();
+  
+  // Extract category from URL if present
+  useState(() => {
+    const queryParams = new URLSearchParams(location.search);
+    const category = queryParams.get("category");
+    if (category) {
+      setActiveCategory(category);
+    }
+  });
 
-  const filteredPDFs = SAMPLE_PDFS.filter(pdf => 
-    pdf.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    pdf.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    pdf.category.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filterPDFs = () => {
+    return SAMPLE_PDFS.filter(pdf => {
+      const matchesSearch = 
+        pdf.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
+        pdf.description.toLowerCase().includes(searchTerm.toLowerCase());
+      
+      const matchesCategory = activeCategory ? pdf.category === activeCategory : true;
+      
+      return matchesSearch && matchesCategory;
+    });
+  };
+
+  const filteredPDFs = filterPDFs();
 
   return (
     <MainLayout>
       <section className="container py-8">
         <div className="mb-8">
-          <h1 className="mb-2 text-3xl font-bold">PDF Library</h1>
+          <h1 className="mb-2 text-3xl font-bold">Academic Resources Library</h1>
           <p className="text-muted-foreground">
-            Browse our collection of educational resources
+            Browse study materials for BSc, BScCSIT, BCA, and BBS programs
           </p>
         </div>
 
@@ -82,15 +117,43 @@ const Library = () => {
           <div className="relative flex-1">
             <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
             <Input
-              placeholder="Search by title, description, or category"
+              placeholder="Search by title or description"
               className="pl-9"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
-          <div className="flex gap-2">
-            <Button variant="outline">All Categories</Button>
-            <Button variant="outline">Recent</Button>
+          <div className="flex flex-wrap gap-2">
+            <Button 
+              variant={activeCategory === "" ? "default" : "outline"} 
+              onClick={() => setActiveCategory("")}
+            >
+              All Programs
+            </Button>
+            <Button 
+              variant={activeCategory === "bsc" ? "default" : "outline"} 
+              onClick={() => setActiveCategory("bsc")}
+            >
+              BSc
+            </Button>
+            <Button 
+              variant={activeCategory === "bsccsit" ? "default" : "outline"}
+              onClick={() => setActiveCategory("bsccsit")}
+            >
+              BScCSIT
+            </Button>
+            <Button 
+              variant={activeCategory === "bca" ? "default" : "outline"}
+              onClick={() => setActiveCategory("bca")}
+            >
+              BCA
+            </Button>
+            <Button 
+              variant={activeCategory === "bbs" ? "default" : "outline"}
+              onClick={() => setActiveCategory("bbs")}
+            >
+              BBS
+            </Button>
           </div>
         </div>
 
@@ -114,7 +177,9 @@ const Library = () => {
                     </p>
                     <div className="mt-2 flex items-center justify-between">
                       <span className="rounded-full bg-study-100 px-2 py-0.5 text-xs text-study-700">
-                        {pdf.category}
+                        {pdf.category === "bsc" ? "BSc" : 
+                         pdf.category === "bsccsit" ? "BScCSIT" : 
+                         pdf.category === "bca" ? "BCA" : "BBS"}
                       </span>
                       <span className="text-xs text-gray-500">
                         {pdf.pages} pages
