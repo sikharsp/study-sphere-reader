@@ -23,18 +23,14 @@ const Header = () => {
                 Library
               </Link>
             </li>
-            <li>
-              <Link to="/upload" className="text-gray-600 hover:text-study-600">
-                Upload
-              </Link>
-            </li>
           </ul>
         </nav>
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="sm" className="hidden md:inline-flex">
-            Sign In
-          </Button>
-          <Button className="bg-study-600 hover:bg-study-700">Get Started</Button>
+          <Link to="/admin">
+            <Button className="bg-study-600 hover:bg-study-700">
+              Admin Login
+            </Button>
+          </Link>
         </div>
       </div>
     </header>
