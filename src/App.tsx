@@ -10,6 +10,7 @@ import Library from "./pages/Library";
 import Upload from "./pages/Upload";
 import Reader from "./pages/Reader";
 import AdminLoginPage from "./pages/AdminLogin";
+import AdminDashboard from "./pages/AdminDashboard";
 
 const queryClient = new QueryClient();
 
@@ -25,6 +26,7 @@ const App = () => (
           <Route path="/upload" element={<Upload />} />
           <Route path="/read/:id" element={<Reader />} />
           <Route path="/admin" element={<AdminLoginPage />} />
+          <Route path="/admin/dashboard" element={<AdminDashboard />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

@@ -1,11 +1,13 @@
 
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
 
 const AdminLogin = () => {
+  const navigate = useNavigate();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
 
@@ -14,11 +16,15 @@ const AdminLogin = () => {
     
     // Admin credentials - username: admin, password: admin123
     if (username === "admin" && password === "admin123") {
+      sessionStorage.setItem("adminLoggedIn", "true");
+      
       toast({
         title: "Login successful",
         description: "Welcome back, Admin!",
       });
-      // Here you would typically set some state or use a context to track admin authentication
+      
+      // Redirect to admin dashboard
+      navigate("/admin/dashboard");
     } else {
       toast({
         title: "Login failed",
