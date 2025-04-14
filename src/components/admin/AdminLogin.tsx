@@ -12,8 +12,7 @@ const AdminLogin = () => {
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // This is a simple example - in a real app, you would validate against secure credentials
-    // stored in a backend database or authentication service
+    // Admin credentials - username: admin, password: admin123
     if (username === "admin" && password === "admin123") {
       toast({
         title: "Login successful",
@@ -61,6 +60,11 @@ const AdminLogin = () => {
           Log in
         </Button>
       </form>
+      <div className="mt-4 rounded-lg bg-blue-50 p-3 text-sm text-blue-800">
+        <p><strong>Note:</strong> Use these credentials to log in:</p>
+        <p>Username: <code>admin</code></p>
+        <p>Password: <code>admin123</code></p>
+      </div>
     </div>
   );
 };

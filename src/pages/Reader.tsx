@@ -3,8 +3,11 @@ import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import MainLayout from "@/components/layout/MainLayout";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, ZoomIn, ZoomOut, ChevronLeft, ChevronRight, Download } from "lucide-react";
+import { ArrowLeft, ZoomIn, ZoomOut, ChevronLeft, ChevronRight, Download, ThumbsUp, MessageSquare } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { toast } from "@/hooks/use-toast";
 
 // Sample PDFs data (same as Library page)
 const SAMPLE_PDFS = [
@@ -57,6 +60,14 @@ const SAMPLE_PDFS = [
     category: "Literature"
   }
 ];
+
+// Comment type definition
+interface Comment {
+  id: string;
+  userName: string;
+  text: string;
+  timestamp: string;
+}
 
 // This is a placeholder component as we can't actually load PDFs in this demo
 // In a real implementation, you would use a library like react-pdf or pdf.js
@@ -149,6 +160,63 @@ const PDFViewer = ({ documentId }: { documentId: string }) => {
 const Reader = () => {
   const { id } = useParams<{ id: string }>();
   const pdf = SAMPLE_PDFS.find((pdf) => pdf.id === id);
+  const [likes, setLikes] = useState<number>(0);
+  const [hasLiked, setHasLiked] = useState<boolean>(false);
+  const [comments, setComments] = useState<Comment[]>([]);
+  const [newComment, setNewComment] = useState<string>("");
+  const [userName, setUserName] = useState<string>("");
+
+  const handleLike = () => {
+    if (!hasLiked) {
+      setLikes(likes + 1);
+      setHasLiked(true);
+      toast({
+        title: "Thanks for your feedback!",
+        description: "You liked this document.",
+      });
+    } else {
+      setLikes(likes - 1);
+      setHasLiked(false);
+      toast({
+        title: "Feedback removed",
+        description: "You removed your like from this document.",
+      });
+    }
+  };
+
+  const handleAddComment = () => {
+    if (!userName.trim()) {
+      toast({
+        title: "Name required",
+        description: "Please enter your name to comment.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!newComment.trim()) {
+      toast({
+        title: "Empty comment",
+        description: "Please write something before submitting.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const comment: Comment = {
+      id: Date.now().toString(),
+      userName: userName,
+      text: newComment,
+      timestamp: new Date().toLocaleString(),
+    };
+
+    setComments([...comments, comment]);
+    setNewComment("");
+    toast({
+      title: "Comment added",
+      description: "Your comment has been posted successfully.",
+    });
+  };
 
   if (!pdf || !id) {
     return (
@@ -182,6 +250,66 @@ const Reader = () => {
         </div>
 
         <PDFViewer documentId={id} />
+
+        {/* Like section */}
+        <div className="mt-6 flex items-center gap-2">
+          <Button 
+            variant={hasLiked ? "default" : "outline"} 
+            size="sm" 
+            onClick={handleLike}
+            className={hasLiked ? "bg-study-600 hover:bg-study-700" : ""}
+          >
+            <ThumbsUp className="mr-1 h-4 w-4" /> 
+            {hasLiked ? "Liked" : "Like"} ({likes})
+          </Button>
+        </div>
+
+        {/* Comments section */}
+        <div className="mt-8 space-y-4">
+          <h2 className="flex items-center text-xl font-semibold">
+            <MessageSquare className="mr-2 h-5 w-5" /> Comments ({comments.length})
+          </h2>
+          
+          {/* Comment form */}
+          <div className="space-y-3 rounded-lg border bg-white p-4">
+            <div className="space-y-2">
+              <Input 
+                placeholder="Your name" 
+                value={userName}
+                onChange={(e) => setUserName(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Textarea 
+                placeholder="Share your thoughts about this document..."
+                value={newComment}
+                onChange={(e) => setNewComment(e.target.value)}
+              />
+            </div>
+            <Button onClick={handleAddComment} className="bg-study-600 hover:bg-study-700">
+              Post Comment
+            </Button>
+          </div>
+
+          {/* Comments list */}
+          {comments.length === 0 ? (
+            <div className="rounded-lg border border-dashed border-gray-300 bg-gray-50 p-6 text-center text-gray-500">
+              No comments yet. Be the first to share your thoughts!
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {comments.map((comment) => (
+                <div key={comment.id} className="rounded-lg border bg-white p-4">
+                  <div className="mb-2 flex justify-between">
+                    <span className="font-medium">{comment.userName}</span>
+                    <span className="text-sm text-gray-500">{comment.timestamp}</span>
+                  </div>
+                  <p className="text-gray-700">{comment.text}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </section>
     </MainLayout>
   );

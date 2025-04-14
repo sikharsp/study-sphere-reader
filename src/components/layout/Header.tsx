@@ -1,6 +1,6 @@
 
 import { Button } from "@/components/ui/button";
-import { BookOpen } from "lucide-react";
+import { BookOpen, UserCog } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const Header = () => {
@@ -28,7 +28,7 @@ const Header = () => {
         <div className="flex items-center gap-2">
           <Link to="/admin">
             <Button className="bg-study-600 hover:bg-study-700">
-              Admin Login
+              <UserCog className="mr-1 h-4 w-4" /> Admin Portal
             </Button>
           </Link>
         </div>
