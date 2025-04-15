@@ -17,7 +17,7 @@ const Contact = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     // Validate form
@@ -44,35 +44,50 @@ const Contact = () => {
     // Set submitting state
     setIsSubmitting(true);
     
-    // Create mailto link to send email
-    const mailtoLink = `mailto:psikhar74@gmail.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(
-      `Name: ${name}\nEmail: ${email}\n\nMessage:\n${message}`
-    )}`;
-    
-    // Open mail client
-    window.location.href = mailtoLink;
-    
-    // Show success after a slight delay
-    setTimeout(() => {
-      setIsSubmitting(false);
-      setIsSuccess(true);
-      
-      toast({
-        title: "Message ready to send",
-        description: "Your email client has been opened with the message. Please send the email to complete.",
+    try {
+      // Form submission to Formspree
+      const response = await fetch("https://formspree.io/f/psikhar74@gmail.com", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name,
+          email,
+          subject,
+          message,
+        }),
       });
       
-      // Reset form after success
-      setName("");
-      setEmail("");
-      setSubject("");
-      setMessage("");
-      
-      // Reset success message after a delay
-      setTimeout(() => {
-        setIsSuccess(false);
-      }, 5000);
-    }, 1000);
+      if (response.ok) {
+        setIsSuccess(true);
+        toast({
+          title: "Message sent",
+          description: "Your message has been sent successfully.",
+        });
+        
+        // Reset form after success
+        setName("");
+        setEmail("");
+        setSubject("");
+        setMessage("");
+        
+        // Reset success message after a delay
+        setTimeout(() => {
+          setIsSuccess(false);
+        }, 5000);
+      } else {
+        throw new Error("Failed to send message");
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to send message. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -88,7 +103,7 @@ const Contact = () => {
         {isSuccess && (
           <Alert className="mb-8 bg-green-50">
             <AlertDescription className="text-green-700">
-              Your message has been prepared. Please send the email from your mail client to complete.
+              Your message has been sent successfully. We'll get back to you soon.
             </AlertDescription>
           </Alert>
         )}
@@ -147,7 +162,7 @@ const Contact = () => {
                 disabled={isSubmitting}
               >
                 {isSubmitting ? (
-                  "Preparing..."
+                  "Sending..."
                 ) : (
                   <>
                     <Send className="mr-2 h-4 w-4" /> Send Message

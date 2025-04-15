@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { 
   ArrowLeft, ZoomIn, ZoomOut, ChevronLeft, 
   ChevronRight, Download, ThumbsUp, MessageSquare, 
-  Edit, Trash, Eye, EyeOff
+  Edit, Trash, Eye, EyeOff, Save, X
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
@@ -90,12 +90,26 @@ const getStoredLikes = () => {
   return stored ? JSON.parse(stored) : {};
 };
 
+const generateUserId = () => {
+  // Check if user ID exists in localStorage
+  let userId = localStorage.getItem('userId');
+  if (!userId) {
+    // Generate a new user ID if not found
+    userId = 'user_' + Math.random().toString(36).substr(2, 9);
+    localStorage.setItem('userId', userId);
+  }
+  return userId;
+};
+
 // Comment type definition
 interface Comment {
   id: string;
+  userId: string;
   userName: string;
   text: string;
   timestamp: string;
+  isEditing?: boolean;
+  editText?: string;
 }
 
 // This is a placeholder component as we can't actually load PDFs in this demo
@@ -189,16 +203,17 @@ const Reader = () => {
   const { id } = useParams<{ id: string }>();
   const pdf = SAMPLE_PDFS.find((pdf) => pdf.id === id);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [currentUserId] = useState(generateUserId());
   
   // Get stored comments and likes
   const commentStorage = getStoredComments();
   const likeStorage = getStoredLikes();
   
   const [likes, setLikes] = useState<number>(likeStorage[id as string]?.count || 0);
-  const [hasLiked, setHasLiked] = useState<boolean>(false);
+  const [hasLiked, setHasLiked] = useState<boolean>(likeStorage[id as string]?.users?.includes(currentUserId) || false);
   const [comments, setComments] = useState<Comment[]>(commentStorage[id as string] || []);
   const [newComment, setNewComment] = useState<string>("");
-  const [userName, setUserName] = useState<string>("");
+  const [userName, setUserName] = useState<string>(localStorage.getItem('userName') || "");
   
   // Admin editing state
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -209,32 +224,55 @@ const Reader = () => {
   useEffect(() => {
     const adminStatus = sessionStorage.getItem("adminLoggedIn") === "true";
     setIsAdmin(adminStatus);
-  }, []);
+    
+    // Save username if provided
+    if (userName) {
+      localStorage.setItem('userName', userName);
+    }
+  }, [userName]);
 
   const handleLike = () => {
+    // Get current likes state
+    const currentLikeStorage = {...likeStorage};
+    const currentLikes = currentLikeStorage[id as string] || { count: 0, users: [] };
+    
     if (!hasLiked) {
+      // Add like
       const newLikes = likes + 1;
       setLikes(newLikes);
       setHasLiked(true);
       
+      // Update users who liked
+      const likedUsers = currentLikes.users || [];
+      likedUsers.push(currentUserId);
+      
       // Save likes to localStorage
-      const updatedLikes = {...likeStorage};
-      updatedLikes[id as string] = { count: newLikes };
-      localStorage.setItem('pdfLikes', JSON.stringify(updatedLikes));
+      currentLikeStorage[id as string] = { 
+        count: newLikes,
+        users: likedUsers
+      };
+      localStorage.setItem('pdfLikes', JSON.stringify(currentLikeStorage));
       
       toast({
         title: "Thanks for your feedback!",
         description: "You liked this document.",
       });
     } else {
+      // Remove like
       const newLikes = likes - 1;
       setLikes(newLikes);
       setHasLiked(false);
       
+      // Remove user from liked users
+      const likedUsers = currentLikes.users || [];
+      const updatedUsers = likedUsers.filter(userId => userId !== currentUserId);
+      
       // Update localStorage
-      const updatedLikes = {...likeStorage};
-      updatedLikes[id as string] = { count: newLikes };
-      localStorage.setItem('pdfLikes', JSON.stringify(updatedLikes));
+      currentLikeStorage[id as string] = { 
+        count: newLikes,
+        users: updatedUsers
+      };
+      localStorage.setItem('pdfLikes', JSON.stringify(currentLikeStorage));
       
       toast({
         title: "Feedback removed",
@@ -264,6 +302,7 @@ const Reader = () => {
 
     const comment: Comment = {
       id: Date.now().toString(),
+      userId: currentUserId,
       userName: userName,
       text: newComment,
       timestamp: new Date().toLocaleString(),
@@ -272,6 +311,9 @@ const Reader = () => {
     const updatedComments = [...comments, comment];
     setComments(updatedComments);
     setNewComment("");
+    
+    // Save username for future use
+    localStorage.setItem('userName', userName);
     
     // Save to localStorage
     const updatedCommentStorage = {...commentStorage};
@@ -282,6 +324,80 @@ const Reader = () => {
       title: "Comment added",
       description: "Your comment has been posted successfully.",
     });
+  };
+  
+  const handleEditComment = (commentId: string) => {
+    // Set the comment to editing mode
+    const updatedComments = comments.map(comment => {
+      if (comment.id === commentId) {
+        return {
+          ...comment,
+          isEditing: true,
+          editText: comment.text
+        };
+      }
+      return comment;
+    });
+    
+    setComments(updatedComments);
+  };
+  
+  const handleSaveCommentEdit = (commentId: string) => {
+    // Save the edited comment
+    const updatedComments = comments.map(comment => {
+      if (comment.id === commentId) {
+        return {
+          ...comment,
+          text: comment.editText || comment.text,
+          isEditing: false,
+          editText: undefined
+        };
+      }
+      return comment;
+    });
+    
+    setComments(updatedComments);
+    
+    // Save to localStorage
+    const updatedCommentStorage = {...commentStorage};
+    updatedCommentStorage[id as string] = updatedComments;
+    localStorage.setItem('pdfComments', JSON.stringify(updatedCommentStorage));
+    
+    toast({
+      title: "Comment updated",
+      description: "Your comment has been updated successfully.",
+    });
+  };
+  
+  const handleCancelCommentEdit = (commentId: string) => {
+    // Cancel editing mode
+    const updatedComments = comments.map(comment => {
+      if (comment.id === commentId) {
+        return {
+          ...comment,
+          isEditing: false,
+          editText: undefined
+        };
+      }
+      return comment;
+    });
+    
+    setComments(updatedComments);
+  };
+  
+  const handleChangeCommentEdit = (commentId: string, value: string) => {
+    // Update the edit text
+    const updatedComments = comments.map(comment => {
+      if (comment.id === commentId) {
+        return {
+          ...comment,
+          editText: value
+        };
+      }
+      return comment;
+    });
+    
+    setComments(updatedComments);
   };
   
   // Admin functions
@@ -306,6 +422,10 @@ const Reader = () => {
       title: "Comment deleted",
       description: "The comment has been removed.",
     });
+  };
+
+  const canEditComment = (comment: Comment) => {
+    return isAdmin || comment.userId === currentUserId;
   };
 
   if (!pdf || !id) {
@@ -399,23 +519,66 @@ const Reader = () => {
             <div className="space-y-4">
               {comments.map((comment) => (
                 <div key={comment.id} className="rounded-lg border bg-white p-4">
-                  <div className="mb-2 flex justify-between">
-                    <span className="font-medium">{comment.userName}</span>
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm text-gray-500">{comment.timestamp}</span>
-                      {isAdmin && (
+                  {comment.isEditing ? (
+                    // Edit mode
+                    <div className="space-y-3">
+                      <div className="flex justify-between">
+                        <span className="font-medium">{comment.userName}</span>
+                        <span className="text-sm text-gray-500">{comment.timestamp}</span>
+                      </div>
+                      <Textarea 
+                        value={comment.editText} 
+                        onChange={(e) => handleChangeCommentEdit(comment.id, e.target.value)}
+                        className="w-full"
+                      />
+                      <div className="flex gap-2 justify-end">
                         <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          onClick={() => handleDeleteComment(comment.id)}
-                          className="h-6 w-6 text-red-500 hover:bg-red-50 hover:text-red-700"
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => handleCancelCommentEdit(comment.id)}
                         >
-                          <Trash className="h-3 w-3" />
+                          <X className="mr-1 h-4 w-4" /> Cancel
                         </Button>
-                      )}
+                        <Button 
+                          size="sm"
+                          onClick={() => handleSaveCommentEdit(comment.id)}
+                        >
+                          <Save className="mr-1 h-4 w-4" /> Save
+                        </Button>
+                      </div>
                     </div>
-                  </div>
-                  <p className="text-gray-700">{comment.text}</p>
+                  ) : (
+                    // View mode
+                    <>
+                      <div className="mb-2 flex justify-between">
+                        <span className="font-medium">{comment.userName}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm text-gray-500">{comment.timestamp}</span>
+                          {canEditComment(comment) && (
+                            <>
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                onClick={() => handleEditComment(comment.id)}
+                                className="h-6 w-6 text-blue-500 hover:bg-blue-50 hover:text-blue-700"
+                              >
+                                <Edit className="h-3 w-3" />
+                              </Button>
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                onClick={() => handleDeleteComment(comment.id)}
+                                className="h-6 w-6 text-red-500 hover:bg-red-50 hover:text-red-700"
+                              >
+                                <Trash className="h-3 w-3" />
+                              </Button>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                      <p className="text-gray-700">{comment.text}</p>
+                    </>
+                  )}
                 </div>
               ))}
             </div>
