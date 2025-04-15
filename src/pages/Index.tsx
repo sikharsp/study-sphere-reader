@@ -1,12 +1,12 @@
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import MainLayout from "@/components/layout/MainLayout";
 import { BookOpen, FileText, GraduationCap, BookType, School, Mail, Send } from "lucide-react";
 import { Link } from "react-router-dom";
-import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
+import MainLayout from "@/components/layout/MainLayout";
 
 const Index = () => {
   const [name, setName] = useState("");
