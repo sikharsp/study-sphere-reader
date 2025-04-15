@@ -4,7 +4,9 @@ import { useNavigate } from "react-router-dom";
 import MainLayout from "@/components/layout/MainLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { 
   Table, 
   TableBody, 
@@ -21,7 +23,7 @@ import {
   DialogHeader, 
   DialogTitle 
 } from "@/components/ui/dialog";
-import { Edit, Trash, EyeOff, Eye } from "lucide-react";
+import { Edit, Trash, EyeOff, Eye, FileUp, Plus } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
 // Using the same sample PDFs data for now
@@ -87,10 +89,17 @@ const AdminDashboard = () => {
   const [pdfs, setPdfs] = useState(SAMPLE_PDFS);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [currentPdf, setCurrentPdf] = useState<any>(null);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("");
+  
+  // Upload states
+  const [newTitle, setNewTitle] = useState("");
+  const [newDescription, setNewDescription] = useState("");
+  const [newCategory, setNewCategory] = useState("");
+  const [file, setFile] = useState<File | null>(null);
 
   // Check if admin is logged in
   useEffect(() => {
@@ -154,6 +163,58 @@ const AdminDashboard = () => {
     });
   };
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const selectedFile = e.target.files[0];
+      if (selectedFile.type === "application/pdf") {
+        setFile(selectedFile);
+      } else {
+        toast({
+          title: "Invalid file type",
+          description: "Please upload a PDF file",
+          variant: "destructive"
+        });
+      }
+    }
+  };
+
+  const handleUploadPdf = () => {
+    if (!file || !newTitle || !newDescription || !newCategory) {
+      toast({
+        title: "Missing information",
+        description: "Please fill in all required fields and select a PDF file",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // In a real app, we would upload the file to a server
+    // For now, we'll just add it to our local array
+    const newPdf = {
+      id: (pdfs.length + 1).toString(),
+      title: newTitle,
+      description: newDescription,
+      category: newCategory,
+      pages: Math.floor(Math.random() * 50) + 10, // Random page count for demo
+      uploadDate: new Date().toISOString().split('T')[0],
+      hidden: false
+    };
+    
+    setPdfs([...pdfs, newPdf]);
+    setIsUploadModalOpen(false);
+    
+    // Reset form
+    setNewTitle("");
+    setNewDescription("");
+    setNewCategory("");
+    setFile(null);
+    
+    toast({
+      title: "PDF uploaded",
+      description: "The document has been successfully added to the library.",
+    });
+  };
+
   if (!isAuthenticated) {
     return null; // Will redirect to login
   }
@@ -161,11 +222,16 @@ const AdminDashboard = () => {
   return (
     <MainLayout>
       <section className="container py-8">
-        <div className="mb-8">
-          <h1 className="mb-2 text-3xl font-bold">Admin Dashboard</h1>
-          <p className="text-muted-foreground">
-            Manage all PDF resources from this central dashboard
-          </p>
+        <div className="mb-8 flex items-center justify-between">
+          <div>
+            <h1 className="mb-2 text-3xl font-bold">Admin Dashboard</h1>
+            <p className="text-muted-foreground">
+              Manage all PDF resources from this central dashboard
+            </p>
+          </div>
+          <Button onClick={() => setIsUploadModalOpen(true)} className="bg-study-600 hover:bg-study-700">
+            <Plus className="mr-2 h-4 w-4" /> Upload New PDF
+          </Button>
         </div>
 
         <div className="rounded-lg border bg-white p-6 shadow-sm">
@@ -275,6 +341,93 @@ const AdminDashboard = () => {
                 Cancel
               </Button>
               <Button onClick={handleSaveEdit}>Save changes</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Upload PDF Dialog */}
+        <Dialog open={isUploadModalOpen} onOpenChange={setIsUploadModalOpen}>
+          <DialogContent className="sm:max-w-[600px]">
+            <DialogHeader>
+              <DialogTitle>Upload New PDF</DialogTitle>
+              <DialogDescription>
+                Upload a new PDF document to the library
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="mb-4">
+                <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-300 p-6">
+                  <FileUp className="mb-2 h-10 w-10 text-gray-400" />
+                  {file ? (
+                    <div className="text-center">
+                      <p className="mb-1 font-medium text-gray-900">{file.name}</p>
+                      <p className="text-sm text-gray-500">
+                        {(file.size / 1024 / 1024).toFixed(2)} MB
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="text-center">
+                      <p className="mb-1">Drag and drop your PDF here</p>
+                      <p className="text-sm text-gray-500">or click to browse</p>
+                    </div>
+                  )}
+                  <Input 
+                    id="file-upload" 
+                    type="file" 
+                    accept=".pdf" 
+                    className="mt-4"
+                    onChange={handleFileChange}
+                  />
+                </div>
+              </div>
+              
+              <div className="grid gap-2">
+                <Label htmlFor="newTitle">Title</Label>
+                <Input
+                  id="newTitle"
+                  value={newTitle}
+                  onChange={(e) => setNewTitle(e.target.value)}
+                  placeholder="Enter document title"
+                />
+              </div>
+              
+              <div className="grid gap-2">
+                <Label htmlFor="newCategory">Category</Label>
+                <Select value={newCategory} onValueChange={setNewCategory}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="BSc">BSc</SelectItem>
+                    <SelectItem value="BScCSIT">BScCSIT</SelectItem>
+                    <SelectItem value="BCA">BCA</SelectItem>
+                    <SelectItem value="BBS">BBS</SelectItem>
+                    <SelectItem value="Computer Science">Computer Science</SelectItem>
+                    <SelectItem value="Mathematics">Mathematics</SelectItem>
+                    <SelectItem value="Science">Science</SelectItem>
+                    <SelectItem value="History">History</SelectItem>
+                    <SelectItem value="Literature">Literature</SelectItem>
+                    <SelectItem value="Other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="grid gap-2">
+                <Label htmlFor="newDescription">Description</Label>
+                <Textarea
+                  id="newDescription"
+                  value={newDescription}
+                  onChange={(e) => setNewDescription(e.target.value)}
+                  placeholder="Provide a brief description of this document"
+                  rows={3}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsUploadModalOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleUploadPdf}>Upload PDF</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
