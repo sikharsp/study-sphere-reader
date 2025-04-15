@@ -1,10 +1,56 @@
-
 import { Button } from "@/components/ui/button";
 import MainLayout from "@/components/layout/MainLayout";
-import { BookOpen, FileText, GraduationCap, BookType, School } from "lucide-react";
+import { BookOpen, FileText, GraduationCap, BookType, School, Mail, Send } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useState } from "react";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { toast } from "@/hooks/use-toast";
 
 const Index = () => {
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [subject, setSubject] = useState("");
+  const [message, setMessage] = useState("");
+
+  const handleSendMessage = () => {
+    if (!name || !email || !subject || !message) {
+      toast({
+        title: "Missing information",
+        description: "Please fill in all required fields",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      toast({
+        title: "Invalid email",
+        description: "Please enter a valid email address",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const mailtoLink = `mailto:psikhar74@gmail.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(
+      `Name: ${name}\nEmail: ${email}\n\nMessage:\n${message}`
+    )}`;
+    
+    window.location.href = mailtoLink;
+    
+    toast({
+      title: "Message ready to send",
+      description: "Your email client has been opened with the message. Please send the email to complete.",
+    });
+    
+    setName("");
+    setEmail("");
+    setSubject("");
+    setMessage("");
+  };
+
   return (
     <MainLayout>
       {/* Hero Section */}
@@ -121,6 +167,75 @@ const Index = () => {
               <p className="text-gray-600">
                 Improve your learning outcomes with high-quality educational materials
               </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Contact Section */}
+      <section className="py-16 bg-white border-t">
+        <div className="container px-4 md:px-6">
+          <div className="mb-8 text-center">
+            <div className="flex items-center justify-center gap-2 mb-4">
+              <Mail className="h-6 w-6 text-study-600" />
+              <h2 className="text-3xl font-bold">Send us a message</h2>
+            </div>
+            <p className="text-gray-600 max-w-2xl mx-auto">
+              Have questions or need assistance? Reach out to us directly using the form below.
+            </p>
+          </div>
+
+          <div className="mx-auto max-w-2xl">
+            <div className="rounded-lg border bg-card p-6 shadow-sm">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div className="space-y-2">
+                  <Label htmlFor="contact-name">Your Name</Label>
+                  <Input 
+                    id="contact-name" 
+                    placeholder="Enter your name" 
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="contact-email">Your Email</Label>
+                  <Input 
+                    id="contact-email" 
+                    type="email"
+                    placeholder="Enter your email" 
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                  />
+                </div>
+              </div>
+              
+              <div className="space-y-2 mb-4">
+                <Label htmlFor="contact-subject">Subject</Label>
+                <Input 
+                  id="contact-subject" 
+                  placeholder="What is this regarding?" 
+                  value={subject}
+                  onChange={(e) => setSubject(e.target.value)}
+                />
+              </div>
+              
+              <div className="space-y-2 mb-4">
+                <Label htmlFor="contact-message">Message</Label>
+                <Textarea 
+                  id="contact-message" 
+                  placeholder="Your message..." 
+                  rows={5}
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                />
+              </div>
+              
+              <Button
+                onClick={handleSendMessage}
+                className="bg-study-600 hover:bg-study-700 w-full"
+              >
+                <Send className="mr-2 h-4 w-4" /> Send Message
+              </Button>
             </div>
           </div>
         </div>
