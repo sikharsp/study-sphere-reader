@@ -37,6 +37,11 @@ const ProgramsManager = () => {
   // Save programs to localStorage whenever they change
   useEffect(() => {
     localStorage.setItem("academicPrograms", JSON.stringify(programs));
+    // Dispatch a custom event to notify other components of the change
+    const event = new CustomEvent('programsUpdated', { 
+      detail: { programs } 
+    });
+    window.dispatchEvent(event);
   }, [programs]);
 
   const handleAddProgram = () => {

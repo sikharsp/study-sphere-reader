@@ -1,20 +1,37 @@
 
-import { BookOpen, Mail } from "lucide-react";
+import { useState, useEffect } from "react";
+import { BookOpen } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const Footer = () => {
-  // Get programs from localStorage or use default ones
-  const getPrograms = () => {
-    const storedPrograms = localStorage.getItem("academicPrograms");
-    return storedPrograms ? JSON.parse(storedPrograms) : [
-      { id: "bsc", name: "BSc" },
-      { id: "bsccsit", name: "BScCSIT" },
-      { id: "bca", name: "BCA" },
-      { id: "bbs", name: "BBS" }
-    ];
-  };
+  const [programs, setPrograms] = useState<Array<{id: string, name: string}>>([]);
   
-  const programs = getPrograms();
+  // Load programs from localStorage
+  useEffect(() => {
+    const loadPrograms = () => {
+      const storedPrograms = localStorage.getItem("academicPrograms");
+      const programsData = storedPrograms ? JSON.parse(storedPrograms) : [
+        { id: "bsc", name: "BSc" },
+        { id: "bsccsit", name: "BScCSIT" },
+        { id: "bca", name: "BCA" },
+        { id: "bbs", name: "BBS" }
+      ];
+      setPrograms(programsData);
+    };
+    
+    loadPrograms();
+    
+    // Listen for program updates
+    const handleProgramsUpdated = () => {
+      loadPrograms();
+    };
+    
+    window.addEventListener('programsUpdated', handleProgramsUpdated);
+    
+    return () => {
+      window.removeEventListener('programsUpdated', handleProgramsUpdated);
+    };
+  }, []);
 
   return (
     <footer className="border-t bg-white py-8">
@@ -42,6 +59,22 @@ const Footer = () => {
                   Upload Documents
                 </Link>
               </li>
+              {programs.length > 0 && (
+                <li className="pt-2">
+                  <span className="text-xs font-medium uppercase text-gray-500">Programs:</span>
+                  <div className="mt-1 flex flex-wrap gap-2">
+                    {programs.map(program => (
+                      <Link 
+                        key={program.id} 
+                        to={`/library?category=${program.id}`} 
+                        className="text-xs text-study-600 hover:text-study-800"
+                      >
+                        {program.name}
+                      </Link>
+                    ))}
+                  </div>
+                </li>
+              )}
             </ul>
           </div>
           <div>

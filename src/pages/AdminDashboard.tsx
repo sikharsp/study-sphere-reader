@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import MainLayout from "@/components/layout/MainLayout";
@@ -28,15 +27,14 @@ import { Edit, Trash, EyeOff, Eye, FileUp, Plus } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import ProgramsManager from "@/components/admin/ProgramsManager";
 
-// Using the same sample PDFs data for now
-const SAMPLE_PDFS = [
+const DEFAULT_PDFS = [
   {
     id: "1",
     title: "Introduction to Computer Science",
     description: "Fundamentals of programming and computer systems",
     pages: 42,
     uploadDate: "2023-10-15",
-    category: "Computer Science",
+    category: "bsccsit",
     hidden: false
   },
   {
@@ -45,7 +43,7 @@ const SAMPLE_PDFS = [
     description: "Comprehensive guide to cell biology and functions",
     pages: 28,
     uploadDate: "2023-11-05",
-    category: "Biology",
+    category: "bsc",
     hidden: false
   },
   {
@@ -54,7 +52,7 @@ const SAMPLE_PDFS = [
     description: "Analysis of key events from 1900 to present day",
     pages: 64,
     uploadDate: "2023-09-22",
-    category: "History",
+    category: "bbs",
     hidden: false
   },
   {
@@ -63,7 +61,7 @@ const SAMPLE_PDFS = [
     description: "Step-by-step guide to differential calculus",
     pages: 36,
     uploadDate: "2023-12-01",
-    category: "Mathematics",
+    category: "bsc",
     hidden: true
   },
   {
@@ -72,7 +70,7 @@ const SAMPLE_PDFS = [
     description: "Fundamentals of human behavior and mental processes",
     pages: 50,
     uploadDate: "2023-08-17",
-    category: "Psychology",
+    category: "bca",
     hidden: false
   },
   {
@@ -81,14 +79,14 @@ const SAMPLE_PDFS = [
     description: "Analysis of major works by William Shakespeare",
     pages: 45,
     uploadDate: "2023-07-30",
-    category: "Literature",
+    category: "bbs",
     hidden: false
   }
 ];
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
-  const [pdfs, setPdfs] = useState(SAMPLE_PDFS);
+  const [pdfs, setPdfs] = useState<any[]>([]);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
@@ -98,15 +96,12 @@ const AdminDashboard = () => {
   const [category, setCategory] = useState("");
   const [activeTab, setActiveTab] = useState("documents");
   
-  // Upload states
   const [newTitle, setNewTitle] = useState("");
   const [newDescription, setNewDescription] = useState("");
   const [newCategory, setNewCategory] = useState("");
   const [file, setFile] = useState<File | null>(null);
 
-  // Check if admin is logged in
   useEffect(() => {
-    // In a real app, we would check for an authentication token
     const isLoggedIn = sessionStorage.getItem("adminLoggedIn") === "true";
     if (!isLoggedIn) {
       navigate("/admin");
@@ -114,6 +109,26 @@ const AdminDashboard = () => {
     }
     setIsAuthenticated(true);
   }, [navigate]);
+
+  useEffect(() => {
+    const storedPdfs = localStorage.getItem("pdfDocuments");
+    if (storedPdfs) {
+      setPdfs(JSON.parse(storedPdfs));
+    } else {
+      setPdfs(DEFAULT_PDFS);
+      localStorage.setItem("pdfDocuments", JSON.stringify(DEFAULT_PDFS));
+    }
+  }, []);
+
+  useEffect(() => {
+    if (pdfs.length > 0) {
+      localStorage.setItem("pdfDocuments", JSON.stringify(pdfs));
+      const event = new CustomEvent('pdfsUpdated', { 
+        detail: { pdfs } 
+      });
+      window.dispatchEvent(event);
+    }
+  }, [pdfs]);
 
   const handleEdit = (pdf: any) => {
     setCurrentPdf(pdf);
@@ -191,14 +206,12 @@ const AdminDashboard = () => {
       return;
     }
 
-    // In a real app, we would upload the file to a server
-    // For now, we'll just add it to our local array
     const newPdf = {
       id: (pdfs.length + 1).toString(),
       title: newTitle,
       description: newDescription,
       category: newCategory,
-      pages: Math.floor(Math.random() * 50) + 10, // Random page count for demo
+      pages: Math.floor(Math.random() * 50) + 10,
       uploadDate: new Date().toISOString().split('T')[0],
       hidden: false
     };
@@ -206,7 +219,6 @@ const AdminDashboard = () => {
     setPdfs([...pdfs, newPdf]);
     setIsUploadModalOpen(false);
     
-    // Reset form
     setNewTitle("");
     setNewDescription("");
     setNewCategory("");
@@ -219,10 +231,9 @@ const AdminDashboard = () => {
   };
 
   if (!isAuthenticated) {
-    return null; // Will redirect to login
+    return null;
   }
 
-  // Get programs from localStorage for the category select
   const getPrograms = () => {
     const storedPrograms = localStorage.getItem("academicPrograms");
     return storedPrograms ? JSON.parse(storedPrograms) : [
@@ -327,7 +338,6 @@ const AdminDashboard = () => {
           </TabsContent>
         </Tabs>
 
-        {/* Edit PDF Dialog */}
         <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
           <DialogContent className="sm:max-w-[425px]">
             <DialogHeader>
@@ -353,16 +363,10 @@ const AdminDashboard = () => {
                   </SelectTrigger>
                   <SelectContent>
                     {getPrograms().map(program => (
-                      <SelectItem key={program.id} value={program.name}>
+                      <SelectItem key={program.id} value={program.id}>
                         {program.name}
                       </SelectItem>
                     ))}
-                    <SelectItem value="Computer Science">Computer Science</SelectItem>
-                    <SelectItem value="Mathematics">Mathematics</SelectItem>
-                    <SelectItem value="Science">Science</SelectItem>
-                    <SelectItem value="History">History</SelectItem>
-                    <SelectItem value="Literature">Literature</SelectItem>
-                    <SelectItem value="Other">Other</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -385,7 +389,6 @@ const AdminDashboard = () => {
           </DialogContent>
         </Dialog>
 
-        {/* Upload PDF Dialog */}
         <Dialog open={isUploadModalOpen} onOpenChange={setIsUploadModalOpen}>
           <DialogContent className="sm:max-w-[600px]">
             <DialogHeader>
@@ -439,16 +442,10 @@ const AdminDashboard = () => {
                   </SelectTrigger>
                   <SelectContent>
                     {getPrograms().map(program => (
-                      <SelectItem key={program.id} value={program.name}>
+                      <SelectItem key={program.id} value={program.id}>
                         {program.name}
                       </SelectItem>
                     ))}
-                    <SelectItem value="Computer Science">Computer Science</SelectItem>
-                    <SelectItem value="Mathematics">Mathematics</SelectItem>
-                    <SelectItem value="Science">Science</SelectItem>
-                    <SelectItem value="History">History</SelectItem>
-                    <SelectItem value="Literature">Literature</SelectItem>
-                    <SelectItem value="Other">Other</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
