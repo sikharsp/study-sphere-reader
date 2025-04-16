@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,52 +29,22 @@ const AdminLogin = () => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showDemo, setShowDemo] = useState(false);
-
-  useEffect(() => {
-    // Check if developer tools are open
-    const devtoolsCheck = (): void => {
-      const threshold = 160;
-      const widthThreshold = window.outerWidth - window.innerWidth > threshold;
-      const heightThreshold = window.outerHeight - window.innerHeight > threshold;
-      
-      if (widthThreshold || heightThreshold) {
-        document.body.innerHTML = "<h1>For security reasons, this page is not available when developer tools are open.</h1>";
-      }
-    };
-
-    window.addEventListener('resize', devtoolsCheck);
-    devtoolsCheck();
-
-    // Disable right click
-    const disableRightClick = (e: MouseEvent) => {
-      e.preventDefault();
-      return false;
-    };
-    document.addEventListener('contextmenu', disableRightClick);
-
-    return () => {
-      window.removeEventListener('resize', devtoolsCheck);
-      document.removeEventListener('contextmenu', disableRightClick);
-    };
-  }, []);
-
-  // Create one-time verification option
-  useEffect(() => {
-    // Automatically hide demo after 5 seconds on production
-    if (process.env.NODE_ENV === 'production') {
-      const timer = setTimeout(() => {
-        setShowDemo(false);
-      }, 5000);
-      return () => clearTimeout(timer);
-    }
-  }, [showDemo]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
+    setIsLoading(true);
+    setErrorMessage("");
+    
+    console.log("Attempting login with:", { username, password });
     
     // Use the hash function to verify credentials
     const hashedUsername = hashString(username);
     const hashedPassword = hashString(password);
+    
+    console.log("Hashed values:", { hashedUsername, hashedPassword });
+    console.log("Expected values:", { obfuscatedUser, obfuscatedPass });
     
     // Compare using hashed values
     if (hashedUsername === obfuscatedUser && hashedPassword === obfuscatedPass) {
@@ -88,15 +58,21 @@ const AdminLogin = () => {
         description: "Welcome back, Admin!",
       });
       
+      // Trigger a storage event for other tabs
+      window.dispatchEvent(new Event('storage'));
+      
       // Redirect to admin dashboard
       navigate("/admin/dashboard");
     } else {
+      setErrorMessage("Invalid username or password. Please try again.");
       toast({
         title: "Login failed",
         description: "Invalid username or password",
         variant: "destructive",
       });
     }
+    
+    setIsLoading(false);
   };
 
   return (
@@ -129,24 +105,27 @@ const AdminLogin = () => {
             autoComplete="off"
           />
         </div>
-        <Button type="submit" className="w-full bg-study-600 hover:bg-study-700">
-          Log in
+        
+        {errorMessage && (
+          <div className="rounded-md bg-red-50 p-3 text-sm text-red-800">
+            {errorMessage}
+          </div>
+        )}
+        
+        <div className="pt-2 text-center text-sm text-gray-500">
+          <p>Username: education2025</p>
+          <p>Password: samirresource2025</p>
+          <p className="mt-1 text-xs text-gray-400">(Only showing for testing purposes)</p>
+        </div>
+        
+        <Button 
+          type="submit" 
+          className="w-full bg-study-600 hover:bg-study-700"
+          disabled={isLoading}
+        >
+          {isLoading ? "Logging in..." : "Log in"}
         </Button>
       </form>
-      
-      {/* Development-only note - will be automatically hidden in production */}
-      {showDemo && (
-        <div className="mt-4 rounded-lg bg-blue-50 p-3 text-sm text-blue-800">
-          <button 
-            className="float-right text-xs text-gray-500"
-            onClick={() => setShowDemo(false)}
-          >
-            [hide]
-          </button>
-          <p><strong>For development only:</strong></p>
-          <p>Contact admin for credentials</p>
-        </div>
-      )}
     </div>
   );
 };
