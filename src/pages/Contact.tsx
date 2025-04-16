@@ -45,15 +45,18 @@ const Contact = () => {
     setIsSubmitting(true);
     
     try {
-      // Using FormSubmit.io for form submission
+      // Create proper form data for FormSubmit.io
       const formData = new FormData();
       formData.append("name", name);
       formData.append("email", email);
       formData.append("subject", subject);
       formData.append("message", message);
+      formData.append("_subject", "New contact form submission");
+      formData.append("_captcha", "false");
+      formData.append("_next", window.location.href);
 
       // Send to psikhar74@gmail.com via FormSubmit.io
-      const response = await fetch("https://formsubmit.io/send/psikhar74@gmail.com", {
+      const response = await fetch("https://formsubmit.co/psikhar74@gmail.com", {
         method: "POST",
         body: formData,
       });
@@ -84,6 +87,7 @@ const Contact = () => {
         description: "Failed to send message. Please try again.",
         variant: "destructive",
       });
+      console.error("Form submission error:", error);
     } finally {
       setIsSubmitting(false);
     }
@@ -110,7 +114,7 @@ const Contact = () => {
         <div className="mx-auto max-w-2xl">
           <div className="rounded-lg border bg-white p-6 shadow-sm">
             <h2 className="mb-4 text-xl font-semibold">Send us a message</h2>
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-4" action="https://formsubmit.co/psikhar74@gmail.com" method="POST">
               <input type="hidden" name="_next" value={window.location.href} />
               <input type="hidden" name="_subject" value="New contact form submission" />
               <input type="hidden" name="_captcha" value="false" />
