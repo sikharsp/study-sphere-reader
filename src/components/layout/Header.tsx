@@ -10,9 +10,10 @@ const Header = () => {
   const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
-    // Check if admin is logged in
+    // Check if admin is logged in with valid token
     const checkAdminStatus = () => {
-      const adminStatus = sessionStorage.getItem("adminLoggedIn") === "true";
+      const adminStatus = sessionStorage.getItem("adminLoggedIn") === "true" && 
+                          sessionStorage.getItem("adminToken") !== null;
       setIsAdmin(adminStatus);
     };
     
@@ -32,6 +33,7 @@ const Header = () => {
 
   const handleLogout = () => {
     sessionStorage.removeItem("adminLoggedIn");
+    sessionStorage.removeItem("adminToken");
     setIsAdmin(false);
     toast({
       title: "Logged out",

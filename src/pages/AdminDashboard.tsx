@@ -102,11 +102,19 @@ const AdminDashboard = () => {
   const [file, setFile] = useState<File | null>(null);
 
   useEffect(() => {
-    const isLoggedIn = sessionStorage.getItem("adminLoggedIn") === "true";
+    const isLoggedIn = sessionStorage.getItem("adminLoggedIn") === "true" && 
+                       sessionStorage.getItem("adminToken") !== null;
+    
     if (!isLoggedIn) {
       navigate("/admin");
       return;
     }
+    
+    if (document.referrer && !document.referrer.includes('/admin')) {
+      navigate("/admin");
+      return;
+    }
+    
     setIsAuthenticated(true);
   }, [navigate]);
 
