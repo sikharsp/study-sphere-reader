@@ -23,8 +23,10 @@ import {
   DialogHeader, 
   DialogTitle 
 } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Edit, Trash, EyeOff, Eye, FileUp, Plus } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import ProgramsManager from "@/components/admin/ProgramsManager";
 
 // Using the same sample PDFs data for now
 const SAMPLE_PDFS = [
@@ -94,6 +96,7 @@ const AdminDashboard = () => {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("");
+  const [activeTab, setActiveTab] = useState("documents");
   
   // Upload states
   const [newTitle, setNewTitle] = useState("");
@@ -219,6 +222,17 @@ const AdminDashboard = () => {
     return null; // Will redirect to login
   }
 
+  // Get programs from localStorage for the category select
+  const getPrograms = () => {
+    const storedPrograms = localStorage.getItem("academicPrograms");
+    return storedPrograms ? JSON.parse(storedPrograms) : [
+      { id: "bsc", name: "BSc" },
+      { id: "bsccsit", name: "BScCSIT" },
+      { id: "bca", name: "BCA" },
+      { id: "bbs", name: "BBS" }
+    ];
+  };
+
   return (
     <MainLayout>
       <section className="container py-8">
@@ -226,7 +240,7 @@ const AdminDashboard = () => {
           <div>
             <h1 className="mb-2 text-3xl font-bold">Admin Dashboard</h1>
             <p className="text-muted-foreground">
-              Manage all PDF resources from this central dashboard
+              Manage all resources and settings from this central dashboard
             </p>
           </div>
           <Button onClick={() => setIsUploadModalOpen(true)} className="bg-study-600 hover:bg-study-700">
@@ -234,71 +248,84 @@ const AdminDashboard = () => {
           </Button>
         </div>
 
-        <div className="rounded-lg border bg-white p-6 shadow-sm">
-          <h2 className="mb-6 text-xl font-semibold">PDF Documents</h2>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-8">
+          <TabsList className="mb-4">
+            <TabsTrigger value="documents">PDF Documents</TabsTrigger>
+            <TabsTrigger value="programs">Academic Programs</TabsTrigger>
+          </TabsList>
           
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Title</TableHead>
-                <TableHead>Category</TableHead>
-                <TableHead>Upload Date</TableHead>
-                <TableHead>Pages</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {pdfs.map(pdf => (
-                <TableRow key={pdf.id}>
-                  <TableCell className="font-medium">{pdf.title}</TableCell>
-                  <TableCell>{pdf.category}</TableCell>
-                  <TableCell>{pdf.uploadDate}</TableCell>
-                  <TableCell>{pdf.pages}</TableCell>
-                  <TableCell>
-                    <span className={`rounded-full px-2 py-1 text-xs ${
-                      pdf.hidden 
-                        ? "bg-red-100 text-red-800" 
-                        : "bg-green-100 text-green-800"
-                    }`}>
-                      {pdf.hidden ? "Hidden" : "Visible"}
-                    </span>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
-                      <Button 
-                        variant="outline" 
-                        size="icon"
-                        onClick={() => handleEdit(pdf)}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        size="icon"
-                        onClick={() => handleToggleVisibility(pdf.id)}
-                      >
-                        {pdf.hidden ? (
-                          <Eye className="h-4 w-4" />
-                        ) : (
-                          <EyeOff className="h-4 w-4" />
-                        )}
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        size="icon"
-                        onClick={() => handleDelete(pdf.id)}
-                        className="text-red-500 hover:bg-red-50"
-                      >
-                        <Trash className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+          <TabsContent value="documents">
+            <div className="rounded-lg border bg-white p-6 shadow-sm">
+              <h2 className="mb-6 text-xl font-semibold">PDF Documents</h2>
+              
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Title</TableHead>
+                    <TableHead>Category</TableHead>
+                    <TableHead>Upload Date</TableHead>
+                    <TableHead>Pages</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {pdfs.map(pdf => (
+                    <TableRow key={pdf.id}>
+                      <TableCell className="font-medium">{pdf.title}</TableCell>
+                      <TableCell>{pdf.category}</TableCell>
+                      <TableCell>{pdf.uploadDate}</TableCell>
+                      <TableCell>{pdf.pages}</TableCell>
+                      <TableCell>
+                        <span className={`rounded-full px-2 py-1 text-xs ${
+                          pdf.hidden 
+                            ? "bg-red-100 text-red-800" 
+                            : "bg-green-100 text-green-800"
+                        }`}>
+                          {pdf.hidden ? "Hidden" : "Visible"}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-2">
+                          <Button 
+                            variant="outline" 
+                            size="icon"
+                            onClick={() => handleEdit(pdf)}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button 
+                            variant="outline" 
+                            size="icon"
+                            onClick={() => handleToggleVisibility(pdf.id)}
+                          >
+                            {pdf.hidden ? (
+                              <Eye className="h-4 w-4" />
+                            ) : (
+                              <EyeOff className="h-4 w-4" />
+                            )}
+                          </Button>
+                          <Button 
+                            variant="outline" 
+                            size="icon"
+                            onClick={() => handleDelete(pdf.id)}
+                            className="text-red-500 hover:bg-red-50"
+                          >
+                            <Trash className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="programs">
+            <ProgramsManager />
+          </TabsContent>
+        </Tabs>
 
         {/* Edit PDF Dialog */}
         <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
@@ -320,11 +347,24 @@ const AdminDashboard = () => {
               </div>
               <div className="grid gap-2">
                 <label htmlFor="category">Category</label>
-                <Input
-                  id="category"
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value)}
-                />
+                <Select value={category} onValueChange={setCategory}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {getPrograms().map(program => (
+                      <SelectItem key={program.id} value={program.name}>
+                        {program.name}
+                      </SelectItem>
+                    ))}
+                    <SelectItem value="Computer Science">Computer Science</SelectItem>
+                    <SelectItem value="Mathematics">Mathematics</SelectItem>
+                    <SelectItem value="Science">Science</SelectItem>
+                    <SelectItem value="History">History</SelectItem>
+                    <SelectItem value="Literature">Literature</SelectItem>
+                    <SelectItem value="Other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div className="grid gap-2">
                 <label htmlFor="description">Description</label>
@@ -398,10 +438,11 @@ const AdminDashboard = () => {
                     <SelectValue placeholder="Select a category" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="BSc">BSc</SelectItem>
-                    <SelectItem value="BScCSIT">BScCSIT</SelectItem>
-                    <SelectItem value="BCA">BCA</SelectItem>
-                    <SelectItem value="BBS">BBS</SelectItem>
+                    {getPrograms().map(program => (
+                      <SelectItem key={program.id} value={program.name}>
+                        {program.name}
+                      </SelectItem>
+                    ))}
                     <SelectItem value="Computer Science">Computer Science</SelectItem>
                     <SelectItem value="Mathematics">Mathematics</SelectItem>
                     <SelectItem value="Science">Science</SelectItem>

@@ -3,6 +3,19 @@ import { BookOpen, Mail } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const Footer = () => {
+  // Get programs from localStorage or use default ones
+  const getPrograms = () => {
+    const storedPrograms = localStorage.getItem("academicPrograms");
+    return storedPrograms ? JSON.parse(storedPrograms) : [
+      { id: "bsc", name: "BSc" },
+      { id: "bsccsit", name: "BScCSIT" },
+      { id: "bca", name: "BCA" },
+      { id: "bbs", name: "BBS" }
+    ];
+  };
+  
+  const programs = getPrograms();
+
   return (
     <footer className="border-t bg-white py-8">
       <div className="container">

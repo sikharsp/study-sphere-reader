@@ -45,18 +45,17 @@ const Contact = () => {
     setIsSubmitting(true);
     
     try {
-      // Form submission to Formspree
-      const response = await fetch("https://formspree.io/f/psikhar74@gmail.com", {
+      // Using FormSubmit.io for form submission
+      const formData = new FormData();
+      formData.append("name", name);
+      formData.append("email", email);
+      formData.append("subject", subject);
+      formData.append("message", message);
+
+      // Send to psikhar74@gmail.com via FormSubmit.io
+      const response = await fetch("https://formsubmit.io/send/psikhar74@gmail.com", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          name,
-          email,
-          subject,
-          message,
-        }),
+        body: formData,
       });
       
       if (response.ok) {
@@ -112,11 +111,16 @@ const Contact = () => {
           <div className="rounded-lg border bg-white p-6 shadow-sm">
             <h2 className="mb-4 text-xl font-semibold">Send us a message</h2>
             <form onSubmit={handleSubmit} className="space-y-4">
+              <input type="hidden" name="_next" value={window.location.href} />
+              <input type="hidden" name="_subject" value="New contact form submission" />
+              <input type="hidden" name="_captcha" value="false" />
+              
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="name">Your Name</Label>
                   <Input 
                     id="name" 
+                    name="name"
                     placeholder="Enter your name" 
                     value={name}
                     onChange={(e) => setName(e.target.value)}
@@ -127,6 +131,7 @@ const Contact = () => {
                   <Label htmlFor="email">Your Email</Label>
                   <Input 
                     id="email" 
+                    name="email"
                     type="email"
                     placeholder="Enter your email" 
                     value={email}
@@ -139,6 +144,7 @@ const Contact = () => {
                 <Label htmlFor="subject">Subject</Label>
                 <Input 
                   id="subject" 
+                  name="subject"
                   placeholder="What is this regarding?" 
                   value={subject}
                   onChange={(e) => setSubject(e.target.value)}
@@ -149,6 +155,7 @@ const Contact = () => {
                 <Label htmlFor="message">Message</Label>
                 <Textarea 
                   id="message" 
+                  name="message"
                   placeholder="Your message..." 
                   rows={5}
                   value={message}
