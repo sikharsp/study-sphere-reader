@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { FileText, Search } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
+import { listenForStorageEvents } from "@/services/storageEventService";
 
 // Example data for PDFs with academic programs as categories
 const SAMPLE_PDFS = [
@@ -91,7 +92,7 @@ const Library = () => {
     }
   }, [location.search]);
 
-  // Load programs from localStorage
+  // Load programs from localStorage with improved synchronization
   useEffect(() => {
     const loadPrograms = () => {
       const storedPrograms = localStorage.getItem("academicPrograms");
@@ -111,37 +112,49 @@ const Library = () => {
     
     loadPrograms();
     
-    // Listen for program updates
-    const handleProgramsUpdated = () => {
-      loadPrograms();
-    };
-    
-    window.addEventListener('programsUpdated', handleProgramsUpdated);
+    // Listen for program updates using our storage service
+    const unsubscribe = listenForStorageEvents("academicPrograms", (programs) => {
+      setAvailablePrograms(programs);
+      
+      // If the active category no longer exists, reset to all
+      if (activeCategory && !programs.some(p => p.id === activeCategory)) {
+        setActiveCategory("");
+      }
+    });
     
     return () => {
-      window.removeEventListener('programsUpdated', handleProgramsUpdated);
+      unsubscribe();
     };
   }, [activeCategory]);
 
-  // Load PDFs
+  // Load PDFs with improved synchronization
   useEffect(() => {
-    // In a real app, you would fetch from API or localStorage
-    // For now, we'll use the sample data and filter out PDFs with categories
-    // that don't exist anymore
-    const storedPrograms = localStorage.getItem("academicPrograms");
-    const programs = storedPrograms ? JSON.parse(storedPrograms) : [];
-    const programIds = programs.map((p: {id: string}) => p.id);
+    const loadPdfs = () => {
+      const storedPrograms = localStorage.getItem("academicPrograms");
+      const programs = storedPrograms ? JSON.parse(storedPrograms) : [];
+      const programIds = programs.map((p: {id: string}) => p.id);
+      
+      const storedPdfs = localStorage.getItem("pdfDocuments");
+      const allPdfs = storedPdfs ? JSON.parse(storedPdfs) : SAMPLE_PDFS;
+      
+      // Filter out PDFs with categories that don't exist anymore or hidden PDFs
+      const filteredPdfs = allPdfs.filter((pdf: any) => 
+        !pdf.hidden && (programIds.includes(pdf.category) || programIds.length === 0)
+      );
+      
+      setPdfs(filteredPdfs);
+    };
     
-    const storedPdfs = localStorage.getItem("pdfDocuments");
-    const allPdfs = storedPdfs ? JSON.parse(storedPdfs) : SAMPLE_PDFS;
+    loadPdfs();
     
-    // Filter out PDFs with categories that don't exist anymore
-    const filteredPdfs = allPdfs.filter((pdf: any) => 
-      programIds.includes(pdf.category) || 
-      !pdf.hidden // Keep visible PDFs even if their category was deleted
-    );
+    // Listen for PDF updates using our storage service
+    const unsubscribePdfs = listenForStorageEvents("pdfDocuments", () => {
+      loadPdfs(); // Reload PDFs when storage changes
+    });
     
-    setPdfs(filteredPdfs);
+    return () => {
+      unsubscribePdfs();
+    };
   }, [availablePrograms]);
 
   const filterPDFs = () => {

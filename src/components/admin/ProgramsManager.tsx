@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Plus, Trash } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { dispatchCustomEvent } from "@/services/storageEventService";
 
 interface Program {
   id: string;
@@ -16,32 +17,53 @@ const ProgramsManager = () => {
   const [programs, setPrograms] = useState<Program[]>([]);
   const [newProgramName, setNewProgramName] = useState("");
 
-  // Load programs from localStorage on component mount
+  // Load programs from localStorage on component mount with improved synchronization
   useEffect(() => {
-    const storedPrograms = localStorage.getItem("academicPrograms");
-    if (storedPrograms) {
-      setPrograms(JSON.parse(storedPrograms));
-    } else {
-      // Set default programs if none exist
-      const defaultPrograms = [
-        { id: "bsc", name: "BSc" },
-        { id: "bsccsit", name: "BScCSIT" },
-        { id: "bca", name: "BCA" },
-        { id: "bbs", name: "BBS" }
-      ];
-      setPrograms(defaultPrograms);
-      localStorage.setItem("academicPrograms", JSON.stringify(defaultPrograms));
-    }
+    const loadPrograms = () => {
+      const storedPrograms = localStorage.getItem("academicPrograms");
+      if (storedPrograms) {
+        setPrograms(JSON.parse(storedPrograms));
+      } else {
+        // Set default programs if none exist
+        const defaultPrograms = [
+          { id: "bsc", name: "BSc" },
+          { id: "bsccsit", name: "BScCSIT" },
+          { id: "bca", name: "BCA" },
+          { id: "bbs", name: "BBS" }
+        ];
+        setPrograms(defaultPrograms);
+        dispatchCustomEvent("academicPrograms", defaultPrograms);
+      }
+    };
+    
+    loadPrograms();
+    
+    // Listen for storage events (for cross-tab synchronization)
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === "academicPrograms" && e.newValue) {
+        setPrograms(JSON.parse(e.newValue));
+      }
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('lovable-academicPrograms-updated', (e: Event) => {
+      const customEvent = e as CustomEvent;
+      if (customEvent.detail?.data) {
+        setPrograms(customEvent.detail.data);
+      }
+    });
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('lovable-academicPrograms-updated', handleStorageChange as EventListener);
+    };
   }, []);
 
-  // Save programs to localStorage whenever they change
+  // Save programs to localStorage whenever they change using our synchronization service
   useEffect(() => {
-    localStorage.setItem("academicPrograms", JSON.stringify(programs));
-    // Dispatch a custom event to notify other components of the change
-    const event = new CustomEvent('programsUpdated', { 
-      detail: { programs } 
-    });
-    window.dispatchEvent(event);
+    if (programs.length > 0) {
+      dispatchCustomEvent("academicPrograms", programs);
+    }
   }, [programs]);
 
   const handleAddProgram = () => {

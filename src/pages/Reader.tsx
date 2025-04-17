@@ -1,14 +1,11 @@
-
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import MainLayout from "@/components/layout/MainLayout";
 import { Button } from "@/components/ui/button";
 import { 
-  ArrowLeft, ZoomIn, ZoomOut, ChevronLeft, 
-  ChevronRight, Download, ThumbsUp, MessageSquare, 
-  Edit, Trash, Eye, EyeOff, Save, X
+  ArrowLeft, Download, ThumbsUp, MessageSquare, 
+  Edit, Trash, Save, X
 } from "lucide-react";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/hooks/use-toast";
@@ -20,8 +17,9 @@ import {
   DialogHeader, 
   DialogTitle 
 } from "@/components/ui/dialog";
+import PDFViewer from "@/components/pdf/PDFViewer";
+import { listenForStorageEvents } from "@/services/storageEventService";
 
-// Sample PDFs data (same as Library page)
 const SAMPLE_PDFS = [
   {
     id: "1",
@@ -79,7 +77,6 @@ const SAMPLE_PDFS = [
   }
 ];
 
-// Get stored comments and likes from localStorage
 const getStoredComments = () => {
   const stored = localStorage.getItem('pdfComments');
   return stored ? JSON.parse(stored) : {};
@@ -91,17 +88,14 @@ const getStoredLikes = () => {
 };
 
 const generateUserId = () => {
-  // Check if user ID exists in localStorage
   let userId = localStorage.getItem('userId');
   if (!userId) {
-    // Generate a new user ID if not found
     userId = 'user_' + Math.random().toString(36).substr(2, 9);
     localStorage.setItem('userId', userId);
   }
   return userId;
 };
 
-// Comment type definition
 interface Comment {
   id: string;
   userId: string;
@@ -112,100 +106,12 @@ interface Comment {
   editText?: string;
 }
 
-// This is a placeholder component as we can't actually load PDFs in this demo
-const PDFViewer = ({ documentId }: { documentId: string }) => {
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    // Simulate loading delay
-    const timer = setTimeout(() => {
-      setLoading(false);
-    }, 1500);
-
-    return () => clearTimeout(timer);
-  }, []);
-
-  return (
-    <div className="rounded-lg border bg-white shadow">
-      {loading ? (
-        <div className="flex h-full flex-col items-center justify-center p-8">
-          <Skeleton className="h-4/5 w-full rounded" />
-          <div className="mt-4 flex w-full justify-between">
-            <Skeleton className="h-8 w-20" />
-            <Skeleton className="h-8 w-28" />
-            <Skeleton className="h-8 w-20" />
-          </div>
-        </div>
-      ) : (
-        <div className="flex h-full flex-col">
-          <div className="pdf-container p-4">
-            <div className="mx-auto max-w-3xl rounded-lg border border-gray-200 p-8 shadow-sm">
-              <div className="mb-6 text-center">
-                <h2 className="text-xl font-bold">
-                  {SAMPLE_PDFS.find(pdf => pdf.id === documentId)?.title || "Document"}
-                </h2>
-                <p className="text-sm text-gray-500">
-                  {SAMPLE_PDFS.find(pdf => pdf.id === documentId)?.category || "Uncategorized"}
-                </p>
-              </div>
-              <div className="space-y-4 text-gray-700">
-                <p>
-                  This is a placeholder for the actual PDF content. In a real implementation, 
-                  this would display the PDF document using a library like react-pdf or pdf.js.
-                </p>
-                <p>
-                  The document would be fully interactive, allowing users to scroll through pages,
-                  zoom in and out, and potentially even highlight or annotate content.
-                </p>
-                <p>
-                  For this demo, we're simulating the PDF reader interface without loading an actual PDF.
-                </p>
-                <p>
-                  {SAMPLE_PDFS.find(pdf => pdf.id === documentId)?.description || "No description available."}
-                </p>
-                {/* Sample content blocks to simulate a document */}
-                {Array.from({ length: 5 }).map((_, i) => (
-                  <div key={i} className="rounded bg-gray-100 p-4">
-                    <h3 className="mb-2 font-medium">Section {i + 1}</h3>
-                    <div className="h-16 w-full rounded-sm bg-gray-200" />
-                    <p className="mt-2 text-sm">Sample content paragraph {i + 1}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-          <div className="border-t bg-gray-50 p-4">
-            <div className="flex items-center justify-between">
-              <Button variant="outline" size="sm">
-                <ChevronLeft className="mr-1 h-4 w-4" /> Previous Page
-              </Button>
-              <div className="flex items-center gap-2">
-                <Button variant="outline" size="icon">
-                  <ZoomOut className="h-4 w-4" />
-                </Button>
-                <span className="text-sm">Page 1 of {SAMPLE_PDFS.find(pdf => pdf.id === documentId)?.pages || '?'}</span>
-                <Button variant="outline" size="icon">
-                  <ZoomIn className="h-4 w-4" />
-                </Button>
-              </div>
-              <Button variant="outline" size="sm">
-                Next Page <ChevronRight className="ml-1 h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-};
-
 const Reader = () => {
   const { id } = useParams<{ id: string }>();
-  const pdf = SAMPLE_PDFS.find((pdf) => pdf.id === id);
+  const [pdf, setPdf] = useState<any>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [currentUserId] = useState(generateUserId());
   
-  // Get stored comments and likes
   const commentStorage = getStoredComments();
   const likeStorage = getStoredLikes();
   
@@ -215,38 +121,64 @@ const Reader = () => {
   const [newComment, setNewComment] = useState<string>("");
   const [userName, setUserName] = useState<string>(localStorage.getItem('userName') || "");
   
-  // Admin editing state
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [editTitle, setEditTitle] = useState(pdf?.title || "");
-  const [editDescription, setEditDescription] = useState(pdf?.description || "");
+  const [editTitle, setEditTitle] = useState("");
+  const [editDescription, setEditDescription] = useState("");
   
-  // Check admin status
+  useEffect(() => {
+    const loadPdf = () => {
+      if (!id) return;
+      
+      const storedPdfs = localStorage.getItem("pdfDocuments");
+      if (storedPdfs) {
+        const pdfs = JSON.parse(storedPdfs);
+        const foundPdf = pdfs.find((p: any) => p.id === id);
+        if (foundPdf) {
+          setPdf(foundPdf);
+          setEditTitle(foundPdf.title || "");
+          setEditDescription(foundPdf.description || "");
+        }
+      }
+    };
+    
+    loadPdf();
+    
+    const unsubscribe = listenForStorageEvents("pdfDocuments", (updatedPdfs) => {
+      if (!id) return;
+      const foundPdf = updatedPdfs.find((p: any) => p.id === id);
+      if (foundPdf) {
+        setPdf(foundPdf);
+        setEditTitle(foundPdf.title || "");
+        setEditDescription(foundPdf.description || "");
+      }
+    });
+    
+    return () => {
+      unsubscribe();
+    };
+  }, [id]);
+  
   useEffect(() => {
     const adminStatus = sessionStorage.getItem("adminLoggedIn") === "true";
     setIsAdmin(adminStatus);
     
-    // Save username if provided
     if (userName) {
       localStorage.setItem('userName', userName);
     }
   }, [userName]);
 
   const handleLike = () => {
-    // Get current likes state
     const currentLikeStorage = {...likeStorage};
     const currentLikes = currentLikeStorage[id as string] || { count: 0, users: [] };
     
     if (!hasLiked) {
-      // Add like
       const newLikes = likes + 1;
       setLikes(newLikes);
       setHasLiked(true);
       
-      // Update users who liked
       const likedUsers = currentLikes.users || [];
       likedUsers.push(currentUserId);
       
-      // Save likes to localStorage
       currentLikeStorage[id as string] = { 
         count: newLikes,
         users: likedUsers
@@ -258,16 +190,13 @@ const Reader = () => {
         description: "You liked this document.",
       });
     } else {
-      // Remove like
       const newLikes = likes - 1;
       setLikes(newLikes);
       setHasLiked(false);
       
-      // Remove user from liked users
       const likedUsers = currentLikes.users || [];
       const updatedUsers = likedUsers.filter(userId => userId !== currentUserId);
       
-      // Update localStorage
       currentLikeStorage[id as string] = { 
         count: newLikes,
         users: updatedUsers
@@ -312,10 +241,8 @@ const Reader = () => {
     setComments(updatedComments);
     setNewComment("");
     
-    // Save username for future use
     localStorage.setItem('userName', userName);
     
-    // Save to localStorage
     const updatedCommentStorage = {...commentStorage};
     updatedCommentStorage[id as string] = updatedComments;
     localStorage.setItem('pdfComments', JSON.stringify(updatedCommentStorage));
@@ -327,7 +254,6 @@ const Reader = () => {
   };
   
   const handleEditComment = (commentId: string) => {
-    // Set the comment to editing mode
     const updatedComments = comments.map(comment => {
       if (comment.id === commentId) {
         return {
@@ -343,7 +269,6 @@ const Reader = () => {
   };
   
   const handleSaveCommentEdit = (commentId: string) => {
-    // Save the edited comment
     const updatedComments = comments.map(comment => {
       if (comment.id === commentId) {
         return {
@@ -358,7 +283,6 @@ const Reader = () => {
     
     setComments(updatedComments);
     
-    // Save to localStorage
     const updatedCommentStorage = {...commentStorage};
     updatedCommentStorage[id as string] = updatedComments;
     localStorage.setItem('pdfComments', JSON.stringify(updatedCommentStorage));
@@ -370,7 +294,6 @@ const Reader = () => {
   };
   
   const handleCancelCommentEdit = (commentId: string) => {
-    // Cancel editing mode
     const updatedComments = comments.map(comment => {
       if (comment.id === commentId) {
         return {
@@ -386,7 +309,6 @@ const Reader = () => {
   };
   
   const handleChangeCommentEdit = (commentId: string, value: string) => {
-    // Update the edit text
     const updatedComments = comments.map(comment => {
       if (comment.id === commentId) {
         return {
@@ -400,32 +322,41 @@ const Reader = () => {
     setComments(updatedComments);
   };
   
-  // Admin functions
   const handleSaveEdit = () => {
+    if (!pdf || !id) return;
+    
+    const storedPdfs = localStorage.getItem("pdfDocuments");
+    if (storedPdfs) {
+      const pdfs = JSON.parse(storedPdfs);
+      const updatedPdfs = pdfs.map((p: any) => {
+        if (p.id === id) {
+          return {
+            ...p,
+            title: editTitle,
+            description: editDescription
+          };
+        }
+        return p;
+      });
+      
+      localStorage.setItem("pdfDocuments", JSON.stringify(updatedPdfs));
+      const event = new CustomEvent('pdfsUpdated', { 
+        detail: { pdfs: updatedPdfs } 
+      });
+      window.dispatchEvent(event);
+      
+      setPdf({
+        ...pdf,
+        title: editTitle,
+        description: editDescription
+      });
+    }
+    
     toast({
       title: "Changes saved",
       description: "The document has been updated successfully.",
     });
     setIsEditDialogOpen(false);
-  };
-  
-  const handleDeleteComment = (commentId: string) => {
-    const updatedComments = comments.filter(comment => comment.id !== commentId);
-    setComments(updatedComments);
-    
-    // Save to localStorage
-    const updatedCommentStorage = {...commentStorage};
-    updatedCommentStorage[id as string] = updatedComments;
-    localStorage.setItem('pdfComments', JSON.stringify(updatedCommentStorage));
-    
-    toast({
-      title: "Comment deleted",
-      description: "The comment has been removed.",
-    });
-  };
-
-  const canEditComment = (comment: Comment) => {
-    return isAdmin || comment.userId === currentUserId;
   };
 
   if (!pdf || !id) {
@@ -468,9 +399,14 @@ const Reader = () => {
           </div>
         </div>
 
-        <PDFViewer documentId={id} />
+        <PDFViewer 
+          documentId={id} 
+          pdfContent={pdf.content}
+          pdfTitle={pdf.title}
+          pdfCategory={pdf.category}
+          pdfPages={pdf.pages}
+        />
 
-        {/* Like section */}
         <div className="mt-6 flex items-center gap-2">
           <Button 
             variant={hasLiked ? "default" : "outline"} 
@@ -483,13 +419,11 @@ const Reader = () => {
           </Button>
         </div>
 
-        {/* Comments section */}
         <div className="mt-8 space-y-4">
           <h2 className="flex items-center text-xl font-semibold">
             <MessageSquare className="mr-2 h-5 w-5" /> Comments ({comments.length})
           </h2>
           
-          {/* Comment form */}
           <div className="space-y-3 rounded-lg border bg-white p-4">
             <div className="space-y-2">
               <Input 
@@ -510,7 +444,6 @@ const Reader = () => {
             </Button>
           </div>
 
-          {/* Comments list */}
           {comments.length === 0 ? (
             <div className="rounded-lg border border-dashed border-gray-300 bg-gray-50 p-6 text-center text-gray-500">
               No comments yet. Be the first to share your thoughts!
@@ -520,7 +453,6 @@ const Reader = () => {
               {comments.map((comment) => (
                 <div key={comment.id} className="rounded-lg border bg-white p-4">
                   {comment.isEditing ? (
-                    // Edit mode
                     <div className="space-y-3">
                       <div className="flex justify-between">
                         <span className="font-medium">{comment.userName}</span>
@@ -548,7 +480,6 @@ const Reader = () => {
                       </div>
                     </div>
                   ) : (
-                    // View mode
                     <>
                       <div className="mb-2 flex justify-between">
                         <span className="font-medium">{comment.userName}</span>
@@ -586,7 +517,6 @@ const Reader = () => {
         </div>
       </section>
       
-      {/* Admin Edit Dialog */}
       {isAdmin && (
         <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
           <DialogContent>

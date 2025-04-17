@@ -26,6 +26,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Edit, Trash, EyeOff, Eye, FileUp, Plus } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import ProgramsManager from "@/components/admin/ProgramsManager";
+import { dispatchCustomEvent } from "@/services/storageEventService";
 
 const DEFAULT_PDFS = [
   {
@@ -119,22 +120,41 @@ const AdminDashboard = () => {
   }, [navigate]);
 
   useEffect(() => {
-    const storedPdfs = localStorage.getItem("pdfDocuments");
-    if (storedPdfs) {
-      setPdfs(JSON.parse(storedPdfs));
-    } else {
-      setPdfs(DEFAULT_PDFS);
-      localStorage.setItem("pdfDocuments", JSON.stringify(DEFAULT_PDFS));
-    }
+    const loadPdfs = () => {
+      const storedPdfs = localStorage.getItem("pdfDocuments");
+      if (storedPdfs) {
+        setPdfs(JSON.parse(storedPdfs));
+      } else {
+        setPdfs(DEFAULT_PDFS);
+        localStorage.setItem("pdfDocuments", JSON.stringify(DEFAULT_PDFS));
+      }
+    };
+    
+    loadPdfs();
+    
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === "pdfDocuments" && e.newValue) {
+        setPdfs(JSON.parse(e.newValue));
+      }
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('pdfsUpdated', (e: Event) => {
+      const customEvent = e as CustomEvent;
+      if (customEvent.detail?.pdfs) {
+        setPdfs(customEvent.detail.pdfs);
+      }
+    });
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('pdfsUpdated', handleStorageChange as EventListener);
+    };
   }, []);
 
   useEffect(() => {
     if (pdfs.length > 0) {
-      localStorage.setItem("pdfDocuments", JSON.stringify(pdfs));
-      const event = new CustomEvent('pdfsUpdated', { 
-        detail: { pdfs } 
-      });
-      window.dispatchEvent(event);
+      dispatchCustomEvent("pdfDocuments", pdfs);
     }
   }, [pdfs]);
 
@@ -214,28 +234,36 @@ const AdminDashboard = () => {
       return;
     }
 
-    const newPdf = {
-      id: (pdfs.length + 1).toString(),
-      title: newTitle,
-      description: newDescription,
-      category: newCategory,
-      pages: Math.floor(Math.random() * 50) + 10,
-      uploadDate: new Date().toISOString().split('T')[0],
-      hidden: false
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const content = e.target?.result as string;
+      
+      const newPdf = {
+        id: (pdfs.length + 1).toString(),
+        title: newTitle,
+        description: newDescription,
+        category: newCategory,
+        pages: Math.floor(Math.random() * 50) + 10,
+        uploadDate: new Date().toISOString().split('T')[0],
+        hidden: false,
+        content: content
+      };
+      
+      setPdfs([...pdfs, newPdf]);
+      setIsUploadModalOpen(false);
+      
+      setNewTitle("");
+      setNewDescription("");
+      setNewCategory("");
+      setFile(null);
+      
+      toast({
+        title: "PDF uploaded",
+        description: "The document has been successfully added to the library.",
+      });
     };
     
-    setPdfs([...pdfs, newPdf]);
-    setIsUploadModalOpen(false);
-    
-    setNewTitle("");
-    setNewDescription("");
-    setNewCategory("");
-    setFile(null);
-    
-    toast({
-      title: "PDF uploaded",
-      description: "The document has been successfully added to the library.",
-    });
+    reader.readAsDataURL(file);
   };
 
   if (!isAuthenticated) {
