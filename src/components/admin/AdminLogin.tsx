@@ -5,30 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
-
-// Hash function to verify credentials without storing them as plain text
-const hashString = (str: string): string => {
-  let hash = 0;
-  if (str.length === 0) return hash.toString();
-  
-  for (let i = 0; i < str.length; i++) {
-    const char = str.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
-    hash = hash & hash; // Convert to 32bit integer
-  }
-  
-  return hash.toString();
-};
-
-// Create obfuscated values
-const obfuscatedUser = "973895832"; // Represents "education2025"
-const obfuscatedPass = "-1572771963"; // Represents "samirresource2025"
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { ExclamationTriangleIcon } from "@radix-ui/react-icons";
 
 const AdminLogin = () => {
   const navigate = useNavigate();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [showDemo, setShowDemo] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
@@ -37,28 +20,18 @@ const AdminLogin = () => {
     setIsLoading(true);
     setErrorMessage("");
     
-    console.log("Attempting login with:", { username, password });
-    
-    // Use the hash function to verify credentials
-    const hashedUsername = hashString(username);
-    const hashedPassword = hashString(password);
-    
-    console.log("Hashed values:", { hashedUsername, hashedPassword });
-    console.log("Expected values:", { obfuscatedUser, obfuscatedPass });
-    
-    // Compare using hashed values
-    if (hashedUsername === obfuscatedUser && hashedPassword === obfuscatedPass) {
-      // Generate a secure session token
-      const sessionToken = [...Array(30)].map(() => Math.floor(Math.random() * 36).toString(36)).join('');
+    // Simple direct comparison for demo purposes
+    if (username === "education2025" && password === "samirresource2025") {
+      // Set session data
       sessionStorage.setItem("adminLoggedIn", "true");
-      sessionStorage.setItem("adminToken", sessionToken);
+      sessionStorage.setItem("adminToken", "admin-session-token");
       
       toast({
         title: "Login successful",
         description: "Welcome back, Admin!",
       });
       
-      // Trigger a storage event for other tabs
+      // Trigger storage event for Header component
       window.dispatchEvent(new Event('storage'));
       
       // Redirect to admin dashboard
@@ -90,7 +63,6 @@ const AdminLogin = () => {
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             required
-            autoComplete="off"
           />
         </div>
         <div className="space-y-2">
@@ -102,20 +74,23 @@ const AdminLogin = () => {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
-            autoComplete="off"
           />
         </div>
         
         {errorMessage && (
-          <div className="rounded-md bg-red-50 p-3 text-sm text-red-800">
-            {errorMessage}
-          </div>
+          <Alert variant="destructive" className="py-2">
+            <AlertDescription className="flex items-center">
+              <ExclamationTriangleIcon className="h-4 w-4 mr-2" />
+              {errorMessage}
+            </AlertDescription>
+          </Alert>
         )}
         
         <div className="pt-2 text-center text-sm text-gray-500">
-          <p>Username: education2025</p>
-          <p>Password: samirresource2025</p>
-          <p className="mt-1 text-xs text-gray-400">(Only showing for testing purposes)</p>
+          <p><strong>Demo Credentials:</strong></p>
+          <p>Username: <code>education2025</code></p>
+          <p>Password: <code>samirresource2025</code></p>
+          <p className="mt-1 text-xs text-gray-400">(Showing for demonstration purposes only)</p>
         </div>
         
         <Button 
