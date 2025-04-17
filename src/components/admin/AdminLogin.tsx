@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -6,7 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { ExclamationTriangleIcon } from "@radix-ui/react-icons";
+import { ExclamationTriangleIcon, EyeIcon, EyeOffIcon } from "@radix-ui/react-icons";
+import { useTheme } from "next-themes";
 
 const AdminLogin = () => {
   const navigate = useNavigate();
@@ -14,6 +14,8 @@ const AdminLogin = () => {
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [showDemo, setShowDemo] = useState(false);
+  const { theme, setTheme } = useTheme();
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -49,24 +51,27 @@ const AdminLogin = () => {
   };
 
   return (
-    <div className="mx-auto max-w-md space-y-6 p-6 bg-white rounded-lg shadow-md">
+    <div className="mx-auto max-w-md space-y-6 p-6 bg-card rounded-lg shadow-md">
       <div className="space-y-2 text-center">
-        <h1 className="text-3xl font-bold">Admin Login</h1>
-        <p className="text-gray-500">Enter your credentials to access the admin area</p>
+        <h1 className="text-3xl font-bold text-foreground">Admin Login</h1>
+        <p className="text-muted-foreground">Enter your credentials to access the admin area</p>
       </div>
+      
       <form onSubmit={handleLogin} className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="username">Username</Label>
+          <Label htmlFor="username" className="text-foreground">Username</Label>
           <Input 
             id="username"
             placeholder="Enter admin username" 
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             required
+            className="bg-background text-foreground"
           />
         </div>
+        
         <div className="space-y-2">
-          <Label htmlFor="password">Password</Label>
+          <Label htmlFor="password" className="text-foreground">Password</Label>
           <Input 
             id="password"
             type="password" 
@@ -74,6 +79,7 @@ const AdminLogin = () => {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
+            className="bg-background text-foreground"
           />
         </div>
         
@@ -86,20 +92,34 @@ const AdminLogin = () => {
           </Alert>
         )}
         
-        <div className="pt-2 text-center text-sm text-gray-500">
-          <p><strong>Demo Credentials:</strong></p>
-          <p>Username: <code>education2025</code></p>
-          <p>Password: <code>samirresource2025</code></p>
-          <p className="mt-1 text-xs text-gray-400">(Showing for demonstration purposes only)</p>
+        <div className="flex flex-col gap-2">
+          <Button 
+            type="submit" 
+            className="w-full bg-primary hover:bg-primary/90"
+            disabled={isLoading}
+          >
+            {isLoading ? "Logging in..." : "Log in"}
+          </Button>
+          
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full"
+            onClick={() => setShowDemo(!showDemo)}
+          >
+            {showDemo ? <EyeOffIcon className="mr-2 h-4 w-4" /> : <EyeIcon className="mr-2 h-4 w-4" />}
+            {showDemo ? "Hide Demo Credentials" : "Show Demo Credentials"}
+          </Button>
         </div>
         
-        <Button 
-          type="submit" 
-          className="w-full bg-study-600 hover:bg-study-700"
-          disabled={isLoading}
-        >
-          {isLoading ? "Logging in..." : "Log in"}
-        </Button>
+        {showDemo && (
+          <div className="pt-2 text-center text-sm text-muted-foreground border rounded-md p-4 bg-muted/50">
+            <p><strong>Demo Credentials:</strong></p>
+            <p>Username: <code className="bg-muted px-1 rounded">education2025</code></p>
+            <p>Password: <code className="bg-muted px-1 rounded">samirresource2025</code></p>
+            <p className="mt-1 text-xs text-muted-foreground/80">For demonstration purposes only</p>
+          </div>
+        )}
       </form>
     </div>
   );
