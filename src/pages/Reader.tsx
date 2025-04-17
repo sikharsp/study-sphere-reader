@@ -167,6 +167,24 @@ const Reader = () => {
     }
   }, [userName]);
 
+  const canEditComment = (comment: Comment) => {
+    return comment.userId === currentUserId || isAdmin;
+  };
+  
+  const handleDeleteComment = (commentId: string) => {
+    const updatedComments = comments.filter(comment => comment.id !== commentId);
+    setComments(updatedComments);
+    
+    const updatedCommentStorage = {...commentStorage};
+    updatedCommentStorage[id as string] = updatedComments;
+    localStorage.setItem('pdfComments', JSON.stringify(updatedCommentStorage));
+    
+    toast({
+      title: "Comment deleted",
+      description: "The comment has been deleted successfully.",
+    });
+  };
+
   const handleLike = () => {
     const currentLikeStorage = {...likeStorage};
     const currentLikes = currentLikeStorage[id as string] || { count: 0, users: [] };
