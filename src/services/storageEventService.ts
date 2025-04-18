@@ -17,6 +17,7 @@ export const dispatchCustomEvent = (key: string, data: any) => {
     // Try to update localStorage, but handle quota exceeded errors
     try {
       localStorage.setItem(key, JSON.stringify(data));
+      console.log(`Storage updated: ${key}`);
     } catch (error) {
       if (error instanceof DOMException && error.name === 'QuotaExceededError') {
         console.warn(`Storage quota exceeded for ${key}. Some data might not be persisted across sessions.`);
@@ -47,12 +48,18 @@ export const dispatchCustomEvent = (key: string, data: any) => {
 
 // Function to listen for custom events
 export const listenForStorageEvents = (key: string, callback: (data: any) => void) => {
+  // Handler for storage events (between tabs)
   const handleEvent = (event: StorageEvent) => {
     if (event.key === key && event.newValue) {
-      callback(JSON.parse(event.newValue));
+      try {
+        callback(JSON.parse(event.newValue));
+      } catch (error) {
+        console.error(`Error parsing ${key} value:`, error);
+      }
     }
   };
   
+  // Handler for custom events (same tab)
   const handleCustomEvent = (event: CustomEvent) => {
     callback(event.detail.data);
   };

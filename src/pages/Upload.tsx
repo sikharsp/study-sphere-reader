@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import MainLayout from "@/components/layout/MainLayout";
 import { Input } from "@/components/ui/input";
@@ -26,6 +25,7 @@ const Upload = () => {
       const selectedFile = e.target.files[0];
       if (selectedFile.type === "application/pdf") {
         setFile(selectedFile);
+        console.log("Upload: PDF file selected", selectedFile.name);
       } else {
         toast({
           title: "Invalid file type",
@@ -59,6 +59,7 @@ const Upload = () => {
 
     // Start upload process
     setUploading(true);
+    console.log("Upload: Starting upload process");
 
     try {
       // Read file as data URL (base64)
@@ -70,13 +71,21 @@ const Upload = () => {
           
           // Get existing PDFs from localStorage
           const storedPdfs = localStorage.getItem("pdfDocuments");
-          const existingPdfs = storedPdfs ? JSON.parse(storedPdfs) : [];
+          let existingPdfs = [];
+          
+          try {
+            existingPdfs = storedPdfs ? JSON.parse(storedPdfs) : [];
+          } catch (parseError) {
+            console.error("Upload: Error parsing existing PDFs:", parseError);
+            existingPdfs = [];
+          }
           
           // Generate a unique ID for the PDF
           const newId = crypto.randomUUID().toString();
           
           // Store content separately to avoid localStorage quota issues
           const contentSaved = storeDocumentContent(newId, content);
+          console.log(`Upload: Content saved: ${contentSaved}`);
           
           // Create new PDF object without the actual content
           const newPdf = {
@@ -92,6 +101,7 @@ const Upload = () => {
           
           // Add new PDF to existing PDFs
           const updatedPdfs = [...existingPdfs, newPdf];
+          console.log(`Upload: Adding new PDF to collection (total: ${updatedPdfs.length})`);
           
           // Use the storage service to update localStorage and dispatch event
           dispatchCustomEvent("pdfDocuments", updatedPdfs);
@@ -112,7 +122,7 @@ const Upload = () => {
             navigate("/library");
           }, 1500);
         } catch (error) {
-          console.error("Error processing file:", error);
+          console.error("Upload: Error processing file:", error);
           setUploading(false);
           
           toast({
@@ -135,7 +145,7 @@ const Upload = () => {
       // Start reading the file
       reader.readAsDataURL(file);
     } catch (error) {
-      console.error("File upload error:", error);
+      console.error("Upload: File upload error:", error);
       setUploading(false);
       toast({
         title: "Upload error",
@@ -147,13 +157,25 @@ const Upload = () => {
 
   // Get program categories
   const getPrograms = () => {
-    const storedPrograms = localStorage.getItem("academicPrograms");
-    return storedPrograms ? JSON.parse(storedPrograms) : [
-      { id: "bsc", name: "BSc" },
-      { id: "bsccsit", name: "BScCSIT" },
-      { id: "bca", name: "BCA" },
-      { id: "bbs", name: "BBS" }
-    ];
+    try {
+      const storedPrograms = localStorage.getItem("academicPrograms");
+      const programs = storedPrograms ? JSON.parse(storedPrograms) : [
+        { id: "bsc", name: "BSc" },
+        { id: "bsccsit", name: "BScCSIT" },
+        { id: "bca", name: "BCA" },
+        { id: "bbs", name: "BBS" }
+      ];
+      console.log("Upload: Loaded programs:", programs.length);
+      return programs;
+    } catch (error) {
+      console.error("Upload: Error loading programs:", error);
+      return [
+        { id: "bsc", name: "BSc" },
+        { id: "bsccsit", name: "BScCSIT" },
+        { id: "bca", name: "BCA" },
+        { id: "bbs", name: "BBS" }
+      ];
+    }
   };
 
   return (

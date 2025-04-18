@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import MainLayout from "@/components/layout/MainLayout";
@@ -104,7 +103,6 @@ const AdminDashboard = () => {
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Check authentication first
   useEffect(() => {
     console.log("Checking authentication...");
     const isLoggedIn = sessionStorage.getItem("adminLoggedIn") === "true" && 
@@ -122,58 +120,45 @@ const AdminDashboard = () => {
     setLoading(false);
   }, [navigate]);
 
-  // Load PDFs only if authenticated
   useEffect(() => {
     if (!isAuthenticated) return;
     
-    console.log("Loading PDFs...");
+    console.log("AdminDashboard: Loading PDFs...");
     const loadPdfs = () => {
       try {
         const storedPdfs = localStorage.getItem("pdfDocuments");
         if (storedPdfs) {
-          setPdfs(JSON.parse(storedPdfs));
-          console.log("PDFs loaded from localStorage");
+          const parsedPdfs = JSON.parse(storedPdfs);
+          console.log(`AdminDashboard: ${parsedPdfs.length} PDFs loaded from localStorage`);
+          setPdfs(parsedPdfs);
         } else {
-          setPdfs(DEFAULT_PDFS);
+          console.log("AdminDashboard: No PDFs in localStorage, using defaults");
           localStorage.setItem("pdfDocuments", JSON.stringify(DEFAULT_PDFS));
-          console.log("Default PDFs loaded");
+          setPdfs(DEFAULT_PDFS);
         }
       } catch (error) {
-        console.error("Error loading PDFs:", error);
+        console.error("AdminDashboard: Error loading PDFs:", error);
         setPdfs(DEFAULT_PDFS);
       }
     };
     
     loadPdfs();
     
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === "pdfDocuments" && e.newValue) {
-        setPdfs(JSON.parse(e.newValue));
-      }
-    };
-    
-    window.addEventListener('storage', handleStorageChange);
-    window.addEventListener('pdfsUpdated', (e: Event) => {
-      const customEvent = e as CustomEvent;
-      if (customEvent.detail?.pdfs) {
-        setPdfs(customEvent.detail.pdfs);
-      }
-    });
+    const unsubscribe = dispatchCustomEvent("pdfsUpdated", { pdfs });
     
     return () => {
-      window.removeEventListener('storage', handleStorageChange);
-      window.removeEventListener('pdfsUpdated', handleStorageChange as EventListener);
+      // This is just a placeholder since dispatchCustomEvent doesn't return anything
+      // The actual cleanup is handled by the component unmounting
     };
   }, [isAuthenticated]);
 
-  // Update localStorage only when pdfs change, with safety checks
   useEffect(() => {
-    if (pdfs.length > 0) {
+    if (pdfs.length > 0 && isAuthenticated) {
+      console.log(`AdminDashboard: Updating PDFs in storage, count: ${pdfs.length}`);
       try {
-        // Use the custom dispatch event method which handles quota errors
-        dispatchCustomEvent("pdfsUpdated", { pdfs });
+        dispatchCustomEvent("pdfDocuments", pdfs);
       } catch (error) {
-        console.error("Error updating PDFs:", error);
+        console.error("AdminDashboard: Error updating PDFs:", error);
         toast({
           title: "Storage error",
           description: "There was a problem saving your changes. Some data might not persist between sessions.",
@@ -181,7 +166,7 @@ const AdminDashboard = () => {
         });
       }
     }
-  }, [pdfs]);
+  }, [pdfs, isAuthenticated]);
 
   const handleEdit = (pdf: any) => {
     setCurrentPdf(pdf);
@@ -238,6 +223,7 @@ const AdminDashboard = () => {
     if (e.target.files && e.target.files[0]) {
       const selectedFile = e.target.files[0];
       if (selectedFile.type === "application/pdf") {
+        console.log("AdminDashboard: PDF file selected", selectedFile.name);
         setFile(selectedFile);
       } else {
         toast({
@@ -265,9 +251,8 @@ const AdminDashboard = () => {
         try {
           const content = e.target?.result as string;
           
-          const newId = (pdfs.length + 1).toString();
+          const newId = crypto.randomUUID().toString();
           
-          // Store content separately to avoid localStorage quota issues
           const contentSaved = storeDocumentContent(newId, content);
           
           const newPdf = {
@@ -278,12 +263,14 @@ const AdminDashboard = () => {
             pages: Math.floor(Math.random() * 50) + 10,
             uploadDate: new Date().toISOString().split('T')[0],
             hidden: false,
-            // Only include content reference, not the actual content
             hasContent: contentSaved
           };
           
+          console.log("AdminDashboard: Adding new PDF:", newPdf.title);
           const updatedPdfs = [...pdfs, newPdf];
           setPdfs(updatedPdfs);
+          
+          dispatchCustomEvent("pdfDocuments", updatedPdfs);
           
           setIsUploadModalOpen(false);
           
@@ -299,7 +286,7 @@ const AdminDashboard = () => {
               : "The document was added but its content might not persist between sessions due to size constraints.",
           });
         } catch (error) {
-          console.error("Error processing file:", error);
+          console.error("AdminDashboard: Error processing file:", error);
           toast({
             title: "Upload failed",
             description: "There was an error processing the file",
@@ -318,7 +305,7 @@ const AdminDashboard = () => {
       
       reader.readAsDataURL(file);
     } catch (error) {
-      console.error("File upload error:", error);
+      console.error("AdminDashboard: File upload error:", error);
       toast({
         title: "Upload error",
         description: "An unexpected error occurred",
@@ -327,7 +314,6 @@ const AdminDashboard = () => {
     }
   };
 
-  // Show loading state while checking authentication
   if (loading) {
     return (
       <MainLayout>
@@ -352,7 +338,7 @@ const AdminDashboard = () => {
         { id: "bbs", name: "BBS" }
       ];
     } catch (error) {
-      console.error("Error loading programs:", error);
+      console.error("AdminDashboard: Error loading programs:", error);
       return [
         { id: "bsc", name: "BSc" },
         { id: "bsccsit", name: "BScCSIT" },

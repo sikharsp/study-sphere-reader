@@ -80,7 +80,8 @@ const Library = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [activeCategory, setActiveCategory] = useState("");
   const [availablePrograms, setAvailablePrograms] = useState<Array<{id: string, name: string}>>([]);
-  const [pdfs, setPdfs] = useState(SAMPLE_PDFS);
+  const [pdfs, setPdfs] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const location = useLocation();
   
   // Extract category from URL if present
@@ -95,18 +96,23 @@ const Library = () => {
   // Load programs from localStorage with improved synchronization
   useEffect(() => {
     const loadPrograms = () => {
-      const storedPrograms = localStorage.getItem("academicPrograms");
-      const programs = storedPrograms ? JSON.parse(storedPrograms) : [
-        { id: "bsc", name: "BSc" },
-        { id: "bsccsit", name: "BScCSIT" },
-        { id: "bca", name: "BCA" },
-        { id: "bbs", name: "BBS" }
-      ];
-      setAvailablePrograms(programs);
-      
-      // If the active category no longer exists, reset to all
-      if (activeCategory && !programs.some(p => p.id === activeCategory)) {
-        setActiveCategory("");
+      try {
+        const storedPrograms = localStorage.getItem("academicPrograms");
+        const programs = storedPrograms ? JSON.parse(storedPrograms) : [
+          { id: "bsc", name: "BSc" },
+          { id: "bsccsit", name: "BScCSIT" },
+          { id: "bca", name: "BCA" },
+          { id: "bbs", name: "BBS" }
+        ];
+        console.log("Library: Loading programs:", programs.length);
+        setAvailablePrograms(programs);
+        
+        // If the active category no longer exists, reset to all
+        if (activeCategory && !programs.some(p => p.id === activeCategory)) {
+          setActiveCategory("");
+        }
+      } catch (error) {
+        console.error("Library: Error loading programs:", error);
       }
     };
     
@@ -114,6 +120,7 @@ const Library = () => {
     
     // Listen for program updates using our storage service
     const unsubscribe = listenForStorageEvents("academicPrograms", (programs) => {
+      console.log("Library: Programs updated via storage event");
       setAvailablePrograms(programs);
       
       // If the active category no longer exists, reset to all
@@ -130,32 +137,38 @@ const Library = () => {
   // Load PDFs with improved synchronization
   useEffect(() => {
     const loadPdfs = () => {
-      const storedPrograms = localStorage.getItem("academicPrograms");
-      const programs = storedPrograms ? JSON.parse(storedPrograms) : [];
-      const programIds = programs.map((p: {id: string}) => p.id);
-      
-      const storedPdfs = localStorage.getItem("pdfDocuments");
-      const allPdfs = storedPdfs ? JSON.parse(storedPdfs) : SAMPLE_PDFS;
-      
-      // Filter out PDFs with categories that don't exist anymore or hidden PDFs
-      const filteredPdfs = allPdfs.filter((pdf: any) => 
-        !pdf.hidden && (programIds.includes(pdf.category) || programIds.length === 0)
-      );
-      
-      setPdfs(filteredPdfs);
+      try {
+        const storedPdfs = localStorage.getItem("pdfDocuments");
+        let allPdfs = storedPdfs ? JSON.parse(storedPdfs) : SAMPLE_PDFS;
+        
+        // Filter out hidden PDFs for public display
+        allPdfs = allPdfs.filter((pdf: any) => !pdf.hidden);
+        
+        console.log("Library: Loaded PDFs:", allPdfs.length);
+        setPdfs(allPdfs);
+        setIsLoading(false);
+      } catch (error) {
+        console.error("Library: Error loading PDFs:", error);
+        setPdfs(SAMPLE_PDFS);
+        setIsLoading(false);
+      }
     };
     
     loadPdfs();
     
     // Listen for PDF updates using our storage service
-    const unsubscribePdfs = listenForStorageEvents("pdfDocuments", () => {
-      loadPdfs(); // Reload PDFs when storage changes
+    const unsubscribe = listenForStorageEvents("pdfDocuments", (updatedPdfs) => {
+      console.log("Library: PDFs updated via storage event, count:", updatedPdfs?.length);
+      if (Array.isArray(updatedPdfs)) {
+        const visiblePdfs = updatedPdfs.filter((pdf: any) => !pdf.hidden);
+        setPdfs(visiblePdfs);
+      }
     });
     
     return () => {
-      unsubscribePdfs();
+      unsubscribe();
     };
-  }, [availablePrograms]);
+  }, []);
 
   const filterPDFs = () => {
     return pdfs.filter(pdf => {
@@ -210,7 +223,11 @@ const Library = () => {
           </div>
         </div>
 
-        {filteredPDFs.length === 0 ? (
+        {isLoading ? (
+          <div className="flex h-40 flex-col items-center justify-center">
+            <p>Loading resources...</p>
+          </div>
+        ) : filteredPDFs.length === 0 ? (
           <div className="flex h-40 flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-300">
             <FileText className="mb-2 h-10 w-10 text-gray-400" />
             <p className="text-lg font-medium">No documents found</p>
