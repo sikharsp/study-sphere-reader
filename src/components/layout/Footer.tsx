@@ -8,28 +8,57 @@ const Footer = () => {
   
   // Load programs from localStorage
   useEffect(() => {
+    console.log("Footer component mounted");
+    
     const loadPrograms = () => {
-      const storedPrograms = localStorage.getItem("academicPrograms");
-      const programsData = storedPrograms ? JSON.parse(storedPrograms) : [
-        { id: "bsc", name: "BSc" },
-        { id: "bsccsit", name: "BScCSIT" },
-        { id: "bca", name: "BCA" },
-        { id: "bbs", name: "BBS" }
-      ];
-      setPrograms(programsData);
+      try {
+        const storedPrograms = localStorage.getItem("academicPrograms");
+        if (storedPrograms) {
+          const programsData = JSON.parse(storedPrograms);
+          setPrograms(programsData);
+          console.log("Programs loaded in footer:", programsData);
+        } else {
+          const defaultPrograms = [
+            { id: "bsc", name: "BSc" },
+            { id: "bsccsit", name: "BScCSIT" },
+            { id: "bca", name: "BCA" },
+            { id: "bbs", name: "BBS" }
+          ];
+          setPrograms(defaultPrograms);
+          console.log("Default programs set in footer:", defaultPrograms);
+        }
+      } catch (error) {
+        console.error("Error loading programs in footer:", error);
+        // Fallback to defaults if error
+        const defaultPrograms = [
+          { id: "bsc", name: "BSc" },
+          { id: "bsccsit", name: "BScCSIT" },
+          { id: "bca", name: "BCA" },
+          { id: "bbs", name: "BBS" }
+        ];
+        setPrograms(defaultPrograms);
+      }
     };
     
     loadPrograms();
     
     // Listen for program updates
     const handleProgramsUpdated = () => {
+      console.log("Programs updated event received");
       loadPrograms();
     };
     
     window.addEventListener('programsUpdated', handleProgramsUpdated);
+    window.addEventListener('storage', (e) => {
+      if (e.key === "academicPrograms") {
+        console.log("Program storage changed");
+        loadPrograms();
+      }
+    });
     
     return () => {
       window.removeEventListener('programsUpdated', handleProgramsUpdated);
+      window.removeEventListener('storage', handleProgramsUpdated);
     };
   }, []);
 

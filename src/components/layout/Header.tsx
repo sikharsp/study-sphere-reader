@@ -10,28 +10,40 @@ const Header = () => {
   const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
+    console.log("Header component mounted");
+    
     // Check if admin is logged in with valid token
     const checkAdminStatus = () => {
-      const adminStatus = sessionStorage.getItem("adminLoggedIn") === "true" && 
-                          sessionStorage.getItem("adminToken") !== null;
+      const adminLoggedIn = sessionStorage.getItem("adminLoggedIn");
+      const adminToken = sessionStorage.getItem("adminToken");
+      
+      console.log("Admin status check:", { adminLoggedIn, hasToken: adminToken !== null });
+      
+      const adminStatus = adminLoggedIn === "true" && adminToken !== null;
       setIsAdmin(adminStatus);
     };
     
     checkAdminStatus();
     
     // Add event listener to check admin status when storage changes
-    window.addEventListener('storage', checkAdminStatus);
+    const handleStorageChange = () => {
+      console.log("Storage changed, rechecking admin status");
+      checkAdminStatus();
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
     
     // Also check periodically (in case user logs in in another tab)
     const interval = setInterval(checkAdminStatus, 5000);
     
     return () => {
-      window.removeEventListener('storage', checkAdminStatus);
+      window.removeEventListener('storage', handleStorageChange);
       clearInterval(interval);
     };
   }, []);
 
   const handleLogout = () => {
+    console.log("Logging out admin");
     sessionStorage.removeItem("adminLoggedIn");
     sessionStorage.removeItem("adminToken");
     setIsAdmin(false);
@@ -41,6 +53,11 @@ const Header = () => {
     });
     navigate("/");
   };
+
+  // Log re-renders to track state changes
+  useEffect(() => {
+    console.log("Header re-rendered, isAdmin:", isAdmin);
+  }, [isAdmin]);
 
   return (
     <header className="border-b bg-white shadow-sm">
