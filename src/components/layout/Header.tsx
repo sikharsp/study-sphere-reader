@@ -26,18 +26,29 @@ const Header = () => {
     checkAdminStatus();
     
     // Add event listener to check admin status when storage changes
-    const handleStorageChange = () => {
-      console.log("Storage changed, rechecking admin status");
-      checkAdminStatus();
+    const handleStorageChange = (event: StorageEvent) => {
+      if (event.key === "adminLoggedIn" || event.key === "adminToken") {
+        console.log("Storage changed, rechecking admin status");
+        checkAdminStatus();
+      }
     };
     
     window.addEventListener('storage', handleStorageChange);
+    
+    // Custom event for same-tab updates
+    const handleCustomStorageChange = () => {
+      console.log("Custom storage event, rechecking admin status");
+      checkAdminStatus();
+    };
+    
+    window.addEventListener('adminStatusChanged', handleCustomStorageChange);
     
     // Also check periodically (in case user logs in in another tab)
     const interval = setInterval(checkAdminStatus, 5000);
     
     return () => {
       window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('adminStatusChanged', handleCustomStorageChange);
       clearInterval(interval);
     };
   }, []);
@@ -47,6 +58,10 @@ const Header = () => {
     sessionStorage.removeItem("adminLoggedIn");
     sessionStorage.removeItem("adminToken");
     setIsAdmin(false);
+    
+    // Dispatch custom event to notify other components
+    window.dispatchEvent(new Event('adminStatusChanged'));
+    
     toast({
       title: "Logged out",
       description: "You have been logged out successfully.",

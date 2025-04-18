@@ -10,7 +10,7 @@ import { FileUp, Check, AlertCircle } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useNavigate } from "react-router-dom";
-import { dispatchCustomEvent } from "@/services/storageEventService";
+import { dispatchCustomEvent, storeDocumentContent } from "@/services/storageEventService";
 
 const Upload = () => {
   const navigate = useNavigate();
@@ -72,16 +72,22 @@ const Upload = () => {
           const storedPdfs = localStorage.getItem("pdfDocuments");
           const existingPdfs = storedPdfs ? JSON.parse(storedPdfs) : [];
           
-          // Create new PDF object
+          // Generate a unique ID for the PDF
+          const newId = crypto.randomUUID().toString();
+          
+          // Store content separately to avoid localStorage quota issues
+          const contentSaved = storeDocumentContent(newId, content);
+          
+          // Create new PDF object without the actual content
           const newPdf = {
-            id: crypto.randomUUID().toString(),
+            id: newId,
             title: title,
             description: description,
             category: category,
-            pages: Math.floor(Math.random() * 50) + 10, // Random number of pages
+            pages: Math.floor(Math.random() * 50) + 10,
             uploadDate: new Date().toISOString().split('T')[0],
             hidden: false,
-            content: content
+            hasContent: contentSaved
           };
           
           // Add new PDF to existing PDFs
@@ -96,7 +102,9 @@ const Upload = () => {
           
           toast({
             title: "Upload successful",
-            description: "Your PDF has been uploaded to the library",
+            description: contentSaved
+              ? "Your PDF has been uploaded to the library"
+              : "Your PDF has been uploaded but content might not persist between sessions due to size constraints",
           });
           
           // Navigate to library or reset form after delay

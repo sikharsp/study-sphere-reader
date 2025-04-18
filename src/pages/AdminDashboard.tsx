@@ -27,7 +27,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Edit, Trash, EyeOff, Eye, FileUp, Plus } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import ProgramsManager from "@/components/admin/ProgramsManager";
-import { dispatchCustomEvent } from "@/services/storageEventService";
+import { dispatchCustomEvent, storeDocumentContent } from "@/services/storageEventService";
 
 const DEFAULT_PDFS = [
   {
@@ -166,10 +166,20 @@ const AdminDashboard = () => {
     };
   }, [isAuthenticated]);
 
+  // Update localStorage only when pdfs change, with safety checks
   useEffect(() => {
     if (pdfs.length > 0) {
-      localStorage.setItem("pdfDocuments", JSON.stringify(pdfs));
-      dispatchCustomEvent("pdfsUpdated", { pdfs });
+      try {
+        // Use the custom dispatch event method which handles quota errors
+        dispatchCustomEvent("pdfsUpdated", { pdfs });
+      } catch (error) {
+        console.error("Error updating PDFs:", error);
+        toast({
+          title: "Storage error",
+          description: "There was a problem saving your changes. Some data might not persist between sessions.",
+          variant: "destructive"
+        });
+      }
     }
   }, [pdfs]);
 
@@ -255,20 +265,25 @@ const AdminDashboard = () => {
         try {
           const content = e.target?.result as string;
           
+          const newId = (pdfs.length + 1).toString();
+          
+          // Store content separately to avoid localStorage quota issues
+          const contentSaved = storeDocumentContent(newId, content);
+          
           const newPdf = {
-            id: (pdfs.length + 1).toString(),
+            id: newId,
             title: newTitle,
             description: newDescription,
             category: newCategory,
             pages: Math.floor(Math.random() * 50) + 10,
             uploadDate: new Date().toISOString().split('T')[0],
             hidden: false,
-            content: content
+            // Only include content reference, not the actual content
+            hasContent: contentSaved
           };
           
           const updatedPdfs = [...pdfs, newPdf];
           setPdfs(updatedPdfs);
-          localStorage.setItem("pdfDocuments", JSON.stringify(updatedPdfs));
           
           setIsUploadModalOpen(false);
           
@@ -279,7 +294,9 @@ const AdminDashboard = () => {
           
           toast({
             title: "PDF uploaded",
-            description: "The document has been successfully added to the library.",
+            description: contentSaved 
+              ? "The document has been successfully added to the library."
+              : "The document was added but its content might not persist between sessions due to size constraints.",
           });
         } catch (error) {
           console.error("Error processing file:", error);
