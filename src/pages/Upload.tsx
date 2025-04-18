@@ -7,12 +7,12 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FileUp, Check, AlertCircle } from "lucide-react";
-import { useToast } from "@/components/ui/use-toast";
+import { toast } from "@/hooks/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useNavigate } from "react-router-dom";
+import { dispatchCustomEvent } from "@/services/storageEventService";
 
 const Upload = () => {
-  const { toast } = useToast();
   const navigate = useNavigate();
   const [file, setFile] = useState<File | null>(null);
   const [title, setTitle] = useState("");
@@ -36,7 +36,7 @@ const Upload = () => {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!file) {
@@ -57,78 +57,84 @@ const Upload = () => {
       return;
     }
 
-    // Simulate upload process
+    // Start upload process
     setUploading(true);
 
-    // Read file content
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      try {
-        const content = event.target?.result as string;
-        
-        // Get existing PDFs from localStorage
-        const storedPdfs = localStorage.getItem("pdfDocuments");
-        const existingPdfs = storedPdfs ? JSON.parse(storedPdfs) : [];
-        
-        // Create new PDF object
-        const newPdf = {
-          id: (existingPdfs.length + 1).toString(),
-          title: title,
-          description: description,
-          category: category,
-          pages: Math.floor(Math.random() * 50) + 10, // Random number of pages
-          uploadDate: new Date().toISOString().split('T')[0],
-          hidden: false,
-          content: content
-        };
-        
-        // Add new PDF to existing PDFs
-        const updatedPdfs = [...existingPdfs, newPdf];
-        localStorage.setItem("pdfDocuments", JSON.stringify(updatedPdfs));
-        
-        // Update UI
-        setUploading(false);
-        setSuccess(true);
-        
-        toast({
-          title: "Upload successful",
-          description: "Your PDF has been uploaded to the library",
-        });
-        
-        // Navigate to library or reset form after delay
-        setTimeout(() => {
-          // Reset form
-          setFile(null);
-          setTitle("");
-          setDescription("");
-          setCategory("");
-          setSuccess(false);
+    try {
+      // Read file as data URL (base64)
+      const reader = new FileReader();
+      
+      reader.onload = (event) => {
+        try {
+          const content = event.target?.result as string;
           
-          // Navigate to library
-          navigate("/library");
-        }, 1500);
-      } catch (error) {
-        console.error("Error processing file:", error);
+          // Get existing PDFs from localStorage
+          const storedPdfs = localStorage.getItem("pdfDocuments");
+          const existingPdfs = storedPdfs ? JSON.parse(storedPdfs) : [];
+          
+          // Create new PDF object
+          const newPdf = {
+            id: crypto.randomUUID().toString(),
+            title: title,
+            description: description,
+            category: category,
+            pages: Math.floor(Math.random() * 50) + 10, // Random number of pages
+            uploadDate: new Date().toISOString().split('T')[0],
+            hidden: false,
+            content: content
+          };
+          
+          // Add new PDF to existing PDFs
+          const updatedPdfs = [...existingPdfs, newPdf];
+          
+          // Use the storage service to update localStorage and dispatch event
+          dispatchCustomEvent("pdfDocuments", updatedPdfs);
+          
+          // Update UI
+          setUploading(false);
+          setSuccess(true);
+          
+          toast({
+            title: "Upload successful",
+            description: "Your PDF has been uploaded to the library",
+          });
+          
+          // Navigate to library or reset form after delay
+          setTimeout(() => {
+            navigate("/library");
+          }, 1500);
+        } catch (error) {
+          console.error("Error processing file:", error);
+          setUploading(false);
+          
+          toast({
+            title: "Upload failed",
+            description: "There was an error processing your file. Please try again.",
+            variant: "destructive"
+          });
+        }
+      };
+      
+      reader.onerror = () => {
         setUploading(false);
-        
         toast({
           title: "Upload failed",
-          description: "There was an error processing your file. Please try again.",
+          description: "There was an error reading your file. Please try again.",
           variant: "destructive"
         });
-      }
-    };
-    
-    reader.onerror = () => {
+      };
+      
+      // Start reading the file
+      reader.readAsDataURL(file);
+    } catch (error) {
+      console.error("File upload error:", error);
       setUploading(false);
       toast({
-        title: "Upload failed",
-        description: "There was an error reading your file. Please try again.",
+        title: "Upload error",
+        description: "There was a problem with the file upload. Please try again.",
         variant: "destructive"
       });
-    };
-    
-    reader.readAsDataURL(file);
+    }
   };
 
   // Get program categories
