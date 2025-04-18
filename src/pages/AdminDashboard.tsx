@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import MainLayout from "@/components/layout/MainLayout";
@@ -101,32 +102,45 @@ const AdminDashboard = () => {
   const [newDescription, setNewDescription] = useState("");
   const [newCategory, setNewCategory] = useState("");
   const [file, setFile] = useState<File | null>(null);
+  const [loading, setLoading] = useState(true);
 
+  // Check authentication first
   useEffect(() => {
+    console.log("Checking authentication...");
     const isLoggedIn = sessionStorage.getItem("adminLoggedIn") === "true" && 
                        sessionStorage.getItem("adminToken") !== null;
     
-    if (!isLoggedIn) {
-      navigate("/admin");
-      return;
-    }
+    console.log("Is logged in:", isLoggedIn);
     
-    if (document.referrer && !document.referrer.includes('/admin')) {
+    if (!isLoggedIn) {
+      console.log("Not authenticated, redirecting to admin login");
       navigate("/admin");
       return;
     }
     
     setIsAuthenticated(true);
+    setLoading(false);
   }, [navigate]);
 
+  // Load PDFs only if authenticated
   useEffect(() => {
+    if (!isAuthenticated) return;
+    
+    console.log("Loading PDFs...");
     const loadPdfs = () => {
-      const storedPdfs = localStorage.getItem("pdfDocuments");
-      if (storedPdfs) {
-        setPdfs(JSON.parse(storedPdfs));
-      } else {
+      try {
+        const storedPdfs = localStorage.getItem("pdfDocuments");
+        if (storedPdfs) {
+          setPdfs(JSON.parse(storedPdfs));
+          console.log("PDFs loaded from localStorage");
+        } else {
+          setPdfs(DEFAULT_PDFS);
+          localStorage.setItem("pdfDocuments", JSON.stringify(DEFAULT_PDFS));
+          console.log("Default PDFs loaded");
+        }
+      } catch (error) {
+        console.error("Error loading PDFs:", error);
         setPdfs(DEFAULT_PDFS);
-        localStorage.setItem("pdfDocuments", JSON.stringify(DEFAULT_PDFS));
       }
     };
     
@@ -150,11 +164,12 @@ const AdminDashboard = () => {
       window.removeEventListener('storage', handleStorageChange);
       window.removeEventListener('pdfsUpdated', handleStorageChange as EventListener);
     };
-  }, []);
+  }, [isAuthenticated]);
 
   useEffect(() => {
     if (pdfs.length > 0) {
-      dispatchCustomEvent("pdfDocuments", pdfs);
+      localStorage.setItem("pdfDocuments", JSON.stringify(pdfs));
+      dispatchCustomEvent("pdfsUpdated", { pdfs });
     }
   }, [pdfs]);
 
@@ -234,50 +249,100 @@ const AdminDashboard = () => {
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const content = e.target?.result as string;
-      
-      const newPdf = {
-        id: (pdfs.length + 1).toString(),
-        title: newTitle,
-        description: newDescription,
-        category: newCategory,
-        pages: Math.floor(Math.random() * 50) + 10,
-        uploadDate: new Date().toISOString().split('T')[0],
-        hidden: false,
-        content: content
+    try {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const content = e.target?.result as string;
+          
+          const newPdf = {
+            id: (pdfs.length + 1).toString(),
+            title: newTitle,
+            description: newDescription,
+            category: newCategory,
+            pages: Math.floor(Math.random() * 50) + 10,
+            uploadDate: new Date().toISOString().split('T')[0],
+            hidden: false,
+            content: content
+          };
+          
+          const updatedPdfs = [...pdfs, newPdf];
+          setPdfs(updatedPdfs);
+          localStorage.setItem("pdfDocuments", JSON.stringify(updatedPdfs));
+          
+          setIsUploadModalOpen(false);
+          
+          setNewTitle("");
+          setNewDescription("");
+          setNewCategory("");
+          setFile(null);
+          
+          toast({
+            title: "PDF uploaded",
+            description: "The document has been successfully added to the library.",
+          });
+        } catch (error) {
+          console.error("Error processing file:", error);
+          toast({
+            title: "Upload failed",
+            description: "There was an error processing the file",
+            variant: "destructive"
+          });
+        }
       };
       
-      setPdfs([...pdfs, newPdf]);
-      setIsUploadModalOpen(false);
+      reader.onerror = () => {
+        toast({
+          title: "Upload failed",
+          description: "There was an error reading the file",
+          variant: "destructive"
+        });
+      };
       
-      setNewTitle("");
-      setNewDescription("");
-      setNewCategory("");
-      setFile(null);
-      
+      reader.readAsDataURL(file);
+    } catch (error) {
+      console.error("File upload error:", error);
       toast({
-        title: "PDF uploaded",
-        description: "The document has been successfully added to the library.",
+        title: "Upload error",
+        description: "An unexpected error occurred",
+        variant: "destructive"
       });
-    };
-    
-    reader.readAsDataURL(file);
+    }
   };
+
+  // Show loading state while checking authentication
+  if (loading) {
+    return (
+      <MainLayout>
+        <section className="container py-8 flex items-center justify-center min-h-[50vh]">
+          <p>Loading dashboard...</p>
+        </section>
+      </MainLayout>
+    );
+  }
 
   if (!isAuthenticated) {
     return null;
   }
 
   const getPrograms = () => {
-    const storedPrograms = localStorage.getItem("academicPrograms");
-    return storedPrograms ? JSON.parse(storedPrograms) : [
-      { id: "bsc", name: "BSc" },
-      { id: "bsccsit", name: "BScCSIT" },
-      { id: "bca", name: "BCA" },
-      { id: "bbs", name: "BBS" }
-    ];
+    try {
+      const storedPrograms = localStorage.getItem("academicPrograms");
+      return storedPrograms ? JSON.parse(storedPrograms) : [
+        { id: "bsc", name: "BSc" },
+        { id: "bsccsit", name: "BScCSIT" },
+        { id: "bca", name: "BCA" },
+        { id: "bbs", name: "BBS" }
+      ];
+    } catch (error) {
+      console.error("Error loading programs:", error);
+      return [
+        { id: "bsc", name: "BSc" },
+        { id: "bsccsit", name: "BScCSIT" },
+        { id: "bca", name: "BCA" },
+        { id: "bbs", name: "BBS" }
+      ];
+    }
   };
 
   return (
@@ -302,70 +367,76 @@ const AdminDashboard = () => {
           </TabsList>
           
           <TabsContent value="documents">
-            <div className="rounded-lg border bg-white p-6 shadow-sm">
+            <div className="rounded-lg border bg-white p-6 shadow-sm dark:bg-gray-800 dark:border-gray-700">
               <h2 className="mb-6 text-xl font-semibold">PDF Documents</h2>
               
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Title</TableHead>
-                    <TableHead>Category</TableHead>
-                    <TableHead>Upload Date</TableHead>
-                    <TableHead>Pages</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {pdfs.map(pdf => (
-                    <TableRow key={pdf.id}>
-                      <TableCell className="font-medium">{pdf.title}</TableCell>
-                      <TableCell>{pdf.category}</TableCell>
-                      <TableCell>{pdf.uploadDate}</TableCell>
-                      <TableCell>{pdf.pages}</TableCell>
-                      <TableCell>
-                        <span className={`rounded-full px-2 py-1 text-xs ${
-                          pdf.hidden 
-                            ? "bg-red-100 text-red-800" 
-                            : "bg-green-100 text-green-800"
-                        }`}>
-                          {pdf.hidden ? "Hidden" : "Visible"}
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          <Button 
-                            variant="outline" 
-                            size="icon"
-                            onClick={() => handleEdit(pdf)}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button 
-                            variant="outline" 
-                            size="icon"
-                            onClick={() => handleToggleVisibility(pdf.id)}
-                          >
-                            {pdf.hidden ? (
-                              <Eye className="h-4 w-4" />
-                            ) : (
-                              <EyeOff className="h-4 w-4" />
-                            )}
-                          </Button>
-                          <Button 
-                            variant="outline" 
-                            size="icon"
-                            onClick={() => handleDelete(pdf.id)}
-                            className="text-red-500 hover:bg-red-50"
-                          >
-                            <Trash className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
+              {pdfs.length > 0 ? (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Title</TableHead>
+                      <TableHead>Category</TableHead>
+                      <TableHead>Upload Date</TableHead>
+                      <TableHead>Pages</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {pdfs.map(pdf => (
+                      <TableRow key={pdf.id}>
+                        <TableCell className="font-medium">{pdf.title}</TableCell>
+                        <TableCell>{pdf.category}</TableCell>
+                        <TableCell>{pdf.uploadDate}</TableCell>
+                        <TableCell>{pdf.pages}</TableCell>
+                        <TableCell>
+                          <span className={`rounded-full px-2 py-1 text-xs ${
+                            pdf.hidden 
+                              ? "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200" 
+                              : "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+                          }`}>
+                            {pdf.hidden ? "Hidden" : "Visible"}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-2">
+                            <Button 
+                              variant="outline" 
+                              size="icon"
+                              onClick={() => handleEdit(pdf)}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button 
+                              variant="outline" 
+                              size="icon"
+                              onClick={() => handleToggleVisibility(pdf.id)}
+                            >
+                              {pdf.hidden ? (
+                                <Eye className="h-4 w-4" />
+                              ) : (
+                                <EyeOff className="h-4 w-4" />
+                              )}
+                            </Button>
+                            <Button 
+                              variant="outline" 
+                              size="icon"
+                              onClick={() => handleDelete(pdf.id)}
+                              className="text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"
+                            >
+                              <Trash className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              ) : (
+                <div className="text-center py-8">
+                  <p>No PDF documents found. Upload your first document.</p>
+                </div>
+              )}
             </div>
           </TabsContent>
           
@@ -435,19 +506,19 @@ const AdminDashboard = () => {
             </DialogHeader>
             <div className="grid gap-4 py-4">
               <div className="mb-4">
-                <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-300 p-6">
+                <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-300 p-6 dark:border-gray-600">
                   <FileUp className="mb-2 h-10 w-10 text-gray-400" />
                   {file ? (
                     <div className="text-center">
-                      <p className="mb-1 font-medium text-gray-900">{file.name}</p>
-                      <p className="text-sm text-gray-500">
+                      <p className="mb-1 font-medium text-gray-900 dark:text-white">{file.name}</p>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
                         {(file.size / 1024 / 1024).toFixed(2)} MB
                       </p>
                     </div>
                   ) : (
                     <div className="text-center">
                       <p className="mb-1">Drag and drop your PDF here</p>
-                      <p className="text-sm text-gray-500">or click to browse</p>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">or click to browse</p>
                     </div>
                   )}
                   <Input 

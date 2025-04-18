@@ -15,13 +15,20 @@ import AdminDashboard from "./pages/AdminDashboard";
 import Contact from "./pages/Contact";
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+  console.log("ProtectedRoute check - sessionStorage values:", {
+    isLoggedIn: sessionStorage.getItem("adminLoggedIn"),
+    token: sessionStorage.getItem("adminToken") ? "exists" : "missing"
+  });
+  
   const isLoggedIn = sessionStorage.getItem("adminLoggedIn") === "true" && 
                     sessionStorage.getItem("adminToken") !== null;
                     
   if (!isLoggedIn) {
+    console.log("Authentication failed, redirecting to login");
     return <Navigate to="/admin" replace />;
   }
   
+  console.log("Authentication successful");
   return <>{children}</>;
 };
 
