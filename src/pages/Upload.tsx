@@ -9,9 +9,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { FileUp, Check, AlertCircle } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { useNavigate } from "react-router-dom";
 
 const Upload = () => {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [file, setFile] = useState<File | null>(null);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -58,25 +60,86 @@ const Upload = () => {
     // Simulate upload process
     setUploading(true);
 
-    // Fake upload delay
-    setTimeout(() => {
+    // Read file content
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const content = event.target?.result as string;
+        
+        // Get existing PDFs from localStorage
+        const storedPdfs = localStorage.getItem("pdfDocuments");
+        const existingPdfs = storedPdfs ? JSON.parse(storedPdfs) : [];
+        
+        // Create new PDF object
+        const newPdf = {
+          id: (existingPdfs.length + 1).toString(),
+          title: title,
+          description: description,
+          category: category,
+          pages: Math.floor(Math.random() * 50) + 10, // Random number of pages
+          uploadDate: new Date().toISOString().split('T')[0],
+          hidden: false,
+          content: content
+        };
+        
+        // Add new PDF to existing PDFs
+        const updatedPdfs = [...existingPdfs, newPdf];
+        localStorage.setItem("pdfDocuments", JSON.stringify(updatedPdfs));
+        
+        // Update UI
+        setUploading(false);
+        setSuccess(true);
+        
+        toast({
+          title: "Upload successful",
+          description: "Your PDF has been uploaded to the library",
+        });
+        
+        // Navigate to library or reset form after delay
+        setTimeout(() => {
+          // Reset form
+          setFile(null);
+          setTitle("");
+          setDescription("");
+          setCategory("");
+          setSuccess(false);
+          
+          // Navigate to library
+          navigate("/library");
+        }, 1500);
+      } catch (error) {
+        console.error("Error processing file:", error);
+        setUploading(false);
+        
+        toast({
+          title: "Upload failed",
+          description: "There was an error processing your file. Please try again.",
+          variant: "destructive"
+        });
+      }
+    };
+    
+    reader.onerror = () => {
       setUploading(false);
-      setSuccess(true);
-      
       toast({
-        title: "Upload successful",
-        description: "Your PDF has been uploaded to the library",
+        title: "Upload failed",
+        description: "There was an error reading your file. Please try again.",
+        variant: "destructive"
       });
+    };
+    
+    reader.readAsDataURL(file);
+  };
 
-      // Reset form after 2 seconds
-      setTimeout(() => {
-        setFile(null);
-        setTitle("");
-        setDescription("");
-        setCategory("");
-        setSuccess(false);
-      }, 2000);
-    }, 2000);
+  // Get program categories
+  const getPrograms = () => {
+    const storedPrograms = localStorage.getItem("academicPrograms");
+    return storedPrograms ? JSON.parse(storedPrograms) : [
+      { id: "bsc", name: "BSc" },
+      { id: "bsccsit", name: "BScCSIT" },
+      { id: "bca", name: "BCA" },
+      { id: "bbs", name: "BBS" }
+    ];
   };
 
   return (
@@ -155,17 +218,20 @@ const Upload = () => {
                   <SelectValue placeholder="Select a category" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="mathematics">Mathematics</SelectItem>
-                  <SelectItem value="science">Science</SelectItem>
-                  <SelectItem value="history">History</SelectItem>
-                  <SelectItem value="literature">Literature</SelectItem>
-                  <SelectItem value="computer-science">Computer Science</SelectItem>
-                  <SelectItem value="other">Other</SelectItem>
+                  {getPrograms().map(program => (
+                    <SelectItem key={program.id} value={program.id}>
+                      {program.name}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
             
-            <Button type="submit" className="w-full" disabled={uploading}>
+            <Button 
+              type="submit" 
+              className="w-full" 
+              disabled={uploading}
+            >
               {uploading ? "Uploading..." : "Upload PDF"}
             </Button>
           </form>

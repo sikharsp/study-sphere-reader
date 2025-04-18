@@ -37,13 +37,18 @@ const PDFViewer = ({
     if (pdfContent && canvasRef.current) {
       setLoading(true);
       
-      // In a real implementation, we would use PDF.js to render the PDF
-      // For now we'll simulate completion after a delay
-      const timer = setTimeout(() => {
+      try {
+        // In a real implementation, we would use PDF.js to render the PDF
+        // For now we'll simulate completion after a delay
+        const timer = setTimeout(() => {
+          setLoading(false);
+        }, 1000);
+        
+        return () => clearTimeout(timer);
+      } catch (error) {
+        console.error("Error rendering PDF:", error);
         setLoading(false);
-      }, 1000);
-      
-      return () => clearTimeout(timer);
+      }
     }
   }, [pdfContent, currentPage, scale]);
 
