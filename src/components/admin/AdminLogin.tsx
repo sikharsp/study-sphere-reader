@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -5,7 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { ExclamationTriangleIcon, EyeIcon, EyeOffIcon } from "@radix-ui/react-icons";
+import { ExclamationTriangleIcon } from "@radix-ui/react-icons";
+import { Eye, EyeOff } from "lucide-react";
 import { useTheme } from "next-themes";
 
 const AdminLogin = () => {
@@ -107,7 +109,7 @@ const AdminLogin = () => {
             className="w-full"
             onClick={() => setShowDemo(!showDemo)}
           >
-            {showDemo ? <EyeOffIcon className="mr-2 h-4 w-4" /> : <EyeIcon className="mr-2 h-4 w-4" />}
+            {showDemo ? <EyeOff className="mr-2 h-4 w-4" /> : <Eye className="mr-2 h-4 w-4" />}
             {showDemo ? "Hide Demo Credentials" : "Show Demo Credentials"}
           </Button>
         </div>
